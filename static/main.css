@@ -1,0 +1,221 @@
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f2f4f8;
+  color: #333;
+  margin: 0;
+  padding: 0 2rem 2rem 2rem;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 2.3rem;
+}
+
+.search-controls-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.query-form-container {
+  background: white;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  margin: 0px 0px 1rem 0px;
+}
+
+.search-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.search-controls form,
+.save-load-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.save-load-controls {
+  background: #eef6ff;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+  margin: 0px 0px 1rem 0px;
+}
+
+.search-controls input,
+.search-controls select,
+.search-controls button {
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  white-space: nowrap;
+}
+
+.search-controls button {
+  background-color: steelblue;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.search-controls button:hover {
+  background-color: #3b6ea0;
+}
+
+#query-form input,
+#query-form select,
+#query-form button,
+.save-load-controls button,
+.save-load-controls select {
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  white-space: nowrap;
+}
+
+#query-form button,
+.save-load-controls button {
+  background-color: steelblue;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+#query-form button:hover,
+.save-load-controls button:hover {
+  background-color: #3b6ea0;
+}
+
+svg {
+  width: 100%;
+  overflow: visible;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.card {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: transform 0.2s;
+  overflow-x: hidden;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}
+
+.sentiment {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.positive {
+  color: green;
+}
+
+.neutral {
+  color: gray;
+}
+
+.negative {
+  color: crimson;
+}
+
+.text-label {
+  font-size: 16px;
+  font-style: normal;
+}
+
+.text {
+  margin-top: 0.5rem;
+  font-style: italic;
+  font-size: 16px;
+}
+
+.meta,
+.meta-text {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+  font-style: normal;
+}
+
+.meta {
+  color: black;
+}
+
+.meta a {
+  color: steelblue;
+  text-decoration: none;
+}
+
+.meta a:hover {
+  text-decoration: underline;
+}
+
+.visualizations {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.viz {
+  flex: 0 0 45%;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.viz svg {
+  padding-right: 20px;
+  box-sizing: border-box;
+}
+
+#top-authors-chart,
+#top-domains-chart {
+  min-width: 45%;
+}
+
+#query-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}

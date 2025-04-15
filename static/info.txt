@@ -1,0 +1,1 @@
+Your most recent JSON search file will be saved in and accessed from this directory.

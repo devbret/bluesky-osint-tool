@@ -1,0 +1,6 @@
+venv/
+.vscode/
+__pycache__
+saved_results/*.json
+static/bluesky_sentiment.json
+.env

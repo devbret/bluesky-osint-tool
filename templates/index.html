@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bluesky OSINT Tool</title>
+    <link rel="stylesheet" href="../static/main.css" />
+  </head>
+  <body>
+    <h1>Bluesky OSINT Tool</h1>
+
+    <section class="search-controls-wrapper">
+      <div class="query-form-container">
+        <form id="query-form">
+          <input
+            type="text"
+            id="query"
+            name="query"
+            placeholder="Search term"
+            required
+          />
+          <input type="date" id="start-date" name="start_date" />
+          <input type="date" id="end-date" name="end_date" />
+          <select id="start-hour" name="start_hour">
+            <option value="">Start Hour</option>
+          </select>
+          <select id="end-hour" name="end_hour">
+            <option value="">End Hour</option>
+          </select>
+          <button type="submit">Analyze</button>
+        </form>
+      </div>
+
+      <div class="save-load-controls">
+        <button id="save-button">Save Current Search</button>
+        <select id="load-select">
+          <option value="">Load Saved Search</option>
+        </select>
+      </div>
+    </section>
+
+    <div class="grid" id="card-grid"></div>
+
+    <div class="visualizations" id="visualizations">
+      <div class="viz" id="bar-chart">
+        <svg id="chart" height="500"></svg>
+      </div>
+
+      <div class="viz" id="daily-posts-chart">
+        <svg id="daily-chart" height="500"></svg>
+      </div>
+
+      <div class="viz" id="top-authors-chart"></div>
+
+      <div class="viz" id="top-domains-chart"></div>
+
+      <div class="viz" id="word-cloud"></div>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-cloud/1.2.5/d3.layout.cloud.min.js"></script>
+    <script src="../static/main.js"></script>
+  </body>
+</html>
