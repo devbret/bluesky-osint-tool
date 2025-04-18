@@ -38,8 +38,6 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
     posts = response.json().get("posts", [])
     analyzed = []
 
-    print(posts)
-
     for post in posts:
         try:
             text = post['record'].get('text', "")
