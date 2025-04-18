@@ -95,6 +95,8 @@ function clearVisuals() {
   d3.select("#bar-chart").html("");
   d3.select("#daily-posts-chart").html("");
   d3.select("#word-cloud").html("");
+  d3.select("#hourly-posts-chart").html("");
+  d3.select("#weekly-heatmap-chart").html("");
 }
 
 function visualizePosts(data) {
@@ -273,6 +275,40 @@ function visualizePosts(data) {
 
   d3.select("#daily-posts-chart").append("h3").text("Posts Per Day");
 
+  const dailyPosts = {};
+  data.forEach((d) => {
+    const day = d.created_at.substring(0, 10);
+    dailyPosts[day] = (dailyPosts[day] || 0) + 1;
+  });
+
+  const parseDay = d3.timeParse("%Y-%m-%d");
+  const formatDay = d3.timeFormat("%Y-%m-%d");
+
+  const days = Object.keys(dailyPosts).map(parseDay).sort(d3.ascending);
+  const minDay = days[0];
+  const maxDay = days[days.length - 1];
+
+  const allDays = d3.timeDay.range(minDay, d3.timeDay.offset(maxDay, 1));
+
+  const dailyDataFull = allDays.map((dt) => ({
+    date: dt,
+    count: dailyPosts[formatDay(dt)] || 0,
+  }));
+
+  const xBand = d3
+    .scaleBand()
+    .domain(allDays.map((dt) => formatDay(dt)))
+    .range([0, chartWidth])
+    .padding(0.4);
+
+  const xTime = d3.scaleTime().domain([minDay, maxDay]).range([0, chartWidth]);
+
+  const yDaily = d3
+    .scaleLinear()
+    .domain([0, d3.max(dailyDataFull, (d) => d.count)])
+    .nice()
+    .range([chartHeight, 0]);
+
   const svgDaily = d3
     .select("#daily-posts-chart")
     .append("svg")
@@ -281,56 +317,44 @@ function visualizePosts(data) {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  const dailyPosts = {};
-  data.forEach((d) => {
-    const day = d.created_at.substring(0, 10);
-    dailyPosts[day] = (dailyPosts[day] || 0) + 1;
-  });
-
-  const dailyData = Object.entries(dailyPosts)
-    .map(([day, count]) => ({ day, count }))
-    .sort((a, b) => d3.ascending(a.day, b.day));
-
-  const xDaily = d3
-    .scaleBand()
-    .domain(dailyData.map((d) => d.day))
-    .range([0, chartWidth])
-    .padding(0.4);
-
-  const yDaily = d3
-    .scaleLinear()
-    .domain([0, d3.max(dailyData, (d) => d.count)])
-    .range([chartHeight, 0]);
-
   svgDaily
     .selectAll(".bar")
-    .data(dailyData)
+    .data(dailyDataFull)
     .enter()
     .append("rect")
     .attr("class", "bar")
-    .attr("x", (d) => xDaily(d.day))
+    .attr("x", (d) => xBand(formatDay(d.date)))
     .attr("y", (d) => yDaily(d.count))
-    .attr("width", xDaily.bandwidth())
+    .attr("width", xBand.bandwidth())
     .attr("height", (d) => chartHeight - yDaily(d.count))
     .attr("fill", "steelblue");
 
   svgDaily
     .selectAll(".bar-label")
-    .data(dailyData)
+    .data(dailyDataFull)
     .enter()
     .append("text")
-    .attr("x", (d) => xDaily(d.day) + xDaily.bandwidth() / 2)
+    .attr("class", "bar-label")
+    .attr("x", (d) => xBand(formatDay(d.date)) + xBand.bandwidth() / 2)
     .attr("y", (d) => yDaily(d.count) - 5)
     .attr("text-anchor", "middle")
     .text((d) => d.count);
 
+  const tickCountDaily = Math.min(allDays.length, 10);
   svgDaily
     .append("g")
     .attr("transform", `translate(0,${chartHeight})`)
-    .call(d3.axisBottom(xDaily))
+    .call(
+      d3
+        .axisBottom(xTime)
+        .ticks(tickCountDaily)
+        .tickFormat(d3.timeFormat("%m-%d"))
+    )
     .selectAll("text")
     .attr("transform", "rotate(-45)")
-    .style("text-anchor", "end");
+    .style("text-anchor", "end")
+    .attr("dx", "-0.5em")
+    .attr("dy", "0.5em");
 
   svgDaily.append("g").call(d3.axisLeft(yDaily));
 
@@ -386,6 +410,200 @@ function visualizePosts(data) {
       )
       .text((d) => d.text);
   }
+
+  d3.select("#weekly-heatmap-chart")
+    .append("h3")
+    .text("Weekly Activity Heatmap");
+
+  const marginW = { top: 40, right: 20, bottom: 20, left: 75 };
+  const widthW = window.innerWidth * 0.45 - marginW.left - marginW.right - 66;
+  const heightW = 500 - marginW.top - marginW.bottom;
+
+  const weekdayDomain = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
+
+  const weekdayCounts = {};
+  weekdayDomain.forEach((day) => {
+    weekdayCounts[day] = {};
+  });
+
+  data.forEach((d) => {
+    const dt = new Date(d.created_at);
+    const dow0 = dt.getDay();
+    const nameMap = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const weekday = nameMap[dow0];
+    const hour = dt.getHours();
+    weekdayCounts[weekday][hour] = (weekdayCounts[weekday][hour] || 0) + 1;
+  });
+
+  const hours = d3.range(0, 24);
+  const heatmapData = [];
+  weekdayDomain.forEach((day) => {
+    hours.forEach((hr) => {
+      heatmapData.push({
+        weekday: day,
+        hour: hr,
+        count: weekdayCounts[day][hr] || 0,
+      });
+    });
+  });
+
+  const maxCount = d3.max(heatmapData, (d) => d.count);
+
+  const xW = d3.scaleBand().domain(hours).range([0, widthW]).padding(0.05);
+
+  const yW = d3
+    .scaleBand()
+    .domain(weekdayDomain)
+    .range([0, heightW])
+    .padding(0.05);
+
+  const colorScale = d3
+    .scaleSequential(d3.interpolateBlues)
+    .domain([1, maxCount]);
+
+  const svgW = d3
+    .select("#weekly-heatmap-chart")
+    .append("svg")
+    .attr("width", widthW + marginW.left + marginW.right)
+    .attr("height", heightW + marginW.top + marginW.bottom)
+    .append("g")
+    .attr("transform", `translate(${66},${marginW.top})`);
+
+  svgW
+    .selectAll("rect")
+    .data(heatmapData)
+    .enter()
+    .append("rect")
+    .attr("x", (d) => xW(d.hour))
+    .attr("y", (d) => yW(d.weekday))
+    .attr("width", xW.bandwidth())
+    .attr("height", yW.bandwidth())
+    .attr("fill", (d) => (d.count > 0 ? colorScale(d.count) : "#ffffff"))
+    .attr("stroke", "#ccc");
+
+  svgW
+    .append("g")
+    .attr("transform", `translate(0,0)`)
+    .call(d3.axisTop(xW).tickFormat((d) => `${d}:00`))
+    .selectAll("text")
+    .attr("transform", "rotate(-45)")
+    .style("text-anchor", "start");
+
+  svgW.append("g").call(d3.axisLeft(yW));
+
+  d3.select("#hourly-posts-chart").append("h3").text("Posts Per Hour");
+
+  const marginH = { top: 20, right: 0, bottom: 75, left: 43 };
+  const chartWidthH =
+    window.innerWidth * 0.45 - marginH.left - marginH.right - 75;
+  const chartHeightH = 500 - marginH.top - marginH.bottom;
+
+  const dateHourCounts = {};
+  data.forEach((d) => {
+    const dt = new Date(d.created_at);
+    const day = dt.toISOString().slice(0, 10);
+    const hr = dt.getHours().toString().padStart(2, "0");
+    const key = `${day} ${hr}:00`;
+    dateHourCounts[key] = (dateHourCounts[key] || 0) + 1;
+  });
+
+  const existing = Object.keys(dateHourCounts)
+    .map((k) => new Date(k.replace(" ", "T")))
+    .sort((a, b) => a - b);
+  const minDt = existing[0];
+  const maxDt = existing[existing.length - 1];
+
+  const allHours = [];
+  for (
+    let t = new Date(minDt).getTime();
+    t <= maxDt.getTime();
+    t += 1000 * 60 * 60
+  ) {
+    allHours.push(new Date(t));
+  }
+
+  const hourlyDataFull = allHours.map((dt) => {
+    const day = dt.toISOString().slice(0, 10);
+    const hr = dt.getHours().toString().padStart(2, "0");
+    const key = `${day} ${hr}:00`;
+    return { dt, count: dateHourCounts[key] || 0 };
+  });
+
+  const svgH = d3
+    .select("#hourly-posts-chart")
+    .append("svg")
+    .attr("width", chartWidthH + marginH.left + marginH.right)
+    .attr("height", chartHeightH + marginH.top + marginH.bottom)
+    .append("g")
+    .attr("transform", `translate(${marginH.left},${marginH.top})`);
+
+  const xH = d3.scaleTime().domain([minDt, maxDt]).range([0, chartWidthH]);
+
+  const yH = d3
+    .scaleLinear()
+    .domain([0, d3.max(hourlyDataFull, (d) => d.count)])
+    .nice()
+    .range([chartHeightH, 0]);
+
+  const lineGen = d3
+    .line()
+    .x((d) => xH(d.dt))
+    .y((d) => yH(d.count));
+
+  svgH
+    .append("path")
+    .datum(hourlyDataFull)
+    .attr("fill", "none")
+    .attr("stroke", "steelblue")
+    .attr("stroke-width", 2)
+    .attr("d", lineGen);
+
+  svgH
+    .selectAll(".dot")
+    .data(hourlyDataFull)
+    .enter()
+    .append("circle")
+    .attr("class", "dot")
+    .attr("cx", (d) => xH(d.dt))
+    .attr("cy", (d) => yH(d.count))
+    .attr("r", 3)
+    .attr("fill", "steelblue");
+
+  const totalHours = hourlyDataFull.length;
+  const tickCount = Math.min(totalHours, 10);
+
+  svgH
+    .append("g")
+    .attr("transform", `translate(0,${chartHeightH})`)
+    .call(
+      d3
+        .axisBottom(xH)
+        .ticks(tickCount)
+        .tickFormat(d3.timeFormat("%m-%d %H:%M"))
+    )
+    .selectAll("text")
+    .attr("transform", "rotate(-65)")
+    .style("text-anchor", "end")
+    .attr("dx", "-0.5em")
+    .attr("dy", "0.5em");
+
+  svgH.append("g").call(d3.axisLeft(yH));
 
   const container = d3.select("#card-grid");
   data.forEach((post) => {
