@@ -95,6 +95,7 @@ function clearVisuals() {
   d3.select("#bar-chart").html("");
   d3.select("#daily-posts-chart").html("");
   d3.select("#word-cloud").html("");
+  d3.select("#bigram-cloud").html("");
   d3.select("#hourly-posts-chart").html("");
   d3.select("#weekly-heatmap-chart").html("");
 }
@@ -385,7 +386,7 @@ function visualizePosts(data) {
     .padding(5)
     .rotate(() => (Math.random() < 0.5 ? 0 : 90))
     .font("Impact")
-    .fontSize((d) => 10 + d.size * 2)
+    .fontSize((d) => 10 + d.size)
     .on("end", drawWordCloud)
     .start();
 
@@ -408,6 +409,64 @@ function visualizePosts(data) {
         "transform",
         (d) => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")"
       )
+      .text((d) => d.text);
+  }
+
+  let allTextBigram = data
+    .map((d) => d.text)
+    .join(" ")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ");
+  const wordsArrayBigram = allTextBigram
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
+
+  const bigrams = [];
+  for (let i = 0; i < wordsArrayBigram.length - 1; i++) {
+    bigrams.push(wordsArrayBigram[i] + " " + wordsArrayBigram[i + 1]);
+  }
+
+  const bigramFreq = {};
+  bigrams.forEach((bg) => {
+    bigramFreq[bg] = (bigramFreq[bg] || 0) + 1;
+  });
+  const bigramEntries = Object.entries(bigramFreq).map(([text, count]) => ({
+    text,
+    size: count,
+  }));
+
+  const bcWidth = window.innerWidth * 0.45 - 60,
+    bcHeight = 500;
+
+  d3.select("#bigram-cloud").append("h3").text("Bigram Cloud");
+
+  d3.layout
+    .cloud()
+    .size([bcWidth, bcHeight])
+    .words(bigramEntries)
+    .padding(5)
+    .rotate(() => (Math.random() < 0.5 ? 0 : 90))
+    .font("Impact")
+    .fontSize((d) => 10 + d.size)
+    .on("end", drawBigramCloud)
+    .start();
+
+  function drawBigramCloud(words) {
+    d3.select("#bigram-cloud")
+      .append("svg")
+      .attr("width", bcWidth)
+      .attr("height", bcHeight)
+      .append("g")
+      .attr("transform", `translate(${bcWidth / 2},${bcHeight / 2})`)
+      .selectAll("text")
+      .data(words)
+      .enter()
+      .append("text")
+      .style("font-size", (d) => d.size + "px")
+      .style("font-family", "Impact")
+      .style("fill", () => d3.schemeCategory10[Math.floor(Math.random() * 10)])
+      .attr("text-anchor", "middle")
+      .attr("transform", (d) => `translate(${d.x},${d.y})rotate(${d.rotate})`)
       .text((d) => d.text);
   }
 
