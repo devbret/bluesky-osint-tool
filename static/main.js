@@ -1,27 +1,6 @@
 let currentQuery = "";
 let currentResults = [];
 
-if (!document.querySelector("#start-hour option[value='1']")) {
-  const fillHours = () => {
-    const startHour = document.getElementById("start-hour");
-    const endHour = document.getElementById("end-hour");
-    if (startHour.options.length <= 1 && endHour.options.length <= 1) {
-      for (let i = 0; i < 24; i++) {
-        const opt1 = document.createElement("option");
-        opt1.value = i;
-        opt1.textContent = `${i}:00`;
-        startHour.appendChild(opt1);
-
-        const opt2 = document.createElement("option");
-        opt2.value = i;
-        opt2.textContent = `${i}:00`;
-        endHour.appendChild(opt2);
-      }
-    }
-  };
-  fillHours();
-}
-
 const form = document.getElementById("query-form");
 form.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -112,9 +91,9 @@ loadSelect.addEventListener("change", (e) => {
 
 function clearVisuals() {
   d3.select("#card-grid").html("");
-  d3.selectAll("#top-authors-chart svg, #top-domains-chart svg").remove();
-  d3.select("#chart").html("");
-  d3.select("#daily-chart").html("");
+  d3.selectAll("#top-authors-chart, #top-domains-chart").html("");
+  d3.select("#bar-chart").html("");
+  d3.select("#daily-posts-chart").html("");
   d3.select("#word-cloud").html("");
 }
 
@@ -153,6 +132,7 @@ function visualizePosts(data) {
     data: topAuthors,
     categoryKey: "author",
     valueKey: "count",
+    title: "Top Authors",
   });
 
   renderHorizontalBarChart({
@@ -160,6 +140,7 @@ function visualizePosts(data) {
     data: topDomains,
     categoryKey: "domain",
     valueKey: "count",
+    title: "Top Domains",
   });
 
   function renderHorizontalBarChart({
@@ -167,13 +148,16 @@ function visualizePosts(data) {
     data,
     categoryKey,
     valueKey,
+    title,
   }) {
+    const container = d3.select(containerId);
+    container.append("h3").text(title);
+
     const margin = { top: 20, right: 100, bottom: 30, left: 150 },
       width = window.innerWidth * 0.45 - margin.left - margin.right,
       height = 500 - margin.top - margin.bottom;
 
-    const svg = d3
-      .select(containerId)
+    const svg = container
       .append("svg")
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom)
@@ -219,7 +203,7 @@ function visualizePosts(data) {
 
     svg
       .append("g")
-      .attr("transform", "translate(0," + height + ")")
+      .attr("transform", `translate(0,${height})`)
       .call(d3.axisBottom(x).ticks(5));
   }
 
@@ -230,23 +214,34 @@ function visualizePosts(data) {
     negative: data.filter((d) => d.sentiment < -0.2).length,
   };
 
-  const svg = d3.select("#chart");
-  const width = window.innerWidth * 0.45 - 115;
-  const height = +svg.attr("height") - 60;
-  const g = svg.append("g").attr("transform", "translate(40,20)");
+  const margin = { top: 20, right: 20, bottom: 60, left: 40 };
+
+  const chartWidth = window.innerWidth * 0.45 - margin.left - margin.right - 75;
+  const chartHeight = 500 - margin.top - margin.bottom;
+
+  d3.select("#bar-chart").append("h3").text("Sentiment Distribution");
+
+  const svg = d3
+    .select("#bar-chart")
+    .append("svg")
+    .attr("width", chartWidth + margin.left + margin.right)
+    .attr("height", chartHeight + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
 
   const x = d3
     .scaleBand()
     .domain(["positive", "neutral", "negative"])
-    .range([0, width])
+    .range([0, chartWidth])
     .padding(0.4);
 
   const y = d3
     .scaleLinear()
     .domain([0, d3.max(Object.values(sentimentGroups))])
-    .range([height, 0]);
+    .range([chartHeight, 0]);
 
-  g.selectAll(".bar")
+  svg
+    .selectAll(".bar")
     .data(Object.entries(sentimentGroups))
     .enter()
     .append("rect")
@@ -254,12 +249,13 @@ function visualizePosts(data) {
     .attr("x", (d) => x(d[0]))
     .attr("y", (d) => y(d[1]))
     .attr("width", x.bandwidth())
-    .attr("height", (d) => height - y(d[1]))
+    .attr("height", (d) => chartHeight - y(d[1]))
     .attr("fill", (d) =>
       d[0] === "positive" ? "green" : d[0] === "neutral" ? "gray" : "crimson"
     );
 
-  g.selectAll(".bar-label")
+  svg
+    .selectAll(".bar-label")
     .data(Object.entries(sentimentGroups))
     .enter()
     .append("text")
@@ -268,10 +264,22 @@ function visualizePosts(data) {
     .attr("text-anchor", "middle")
     .text((d) => d[1]);
 
-  g.append("g")
-    .attr("transform", `translate(0, ${height})`)
+  svg
+    .append("g")
+    .attr("transform", `translate(0,${chartHeight})`)
     .call(d3.axisBottom(x));
-  g.append("g").call(d3.axisLeft(y));
+
+  svg.append("g").call(d3.axisLeft(y));
+
+  d3.select("#daily-posts-chart").append("h3").text("Posts Per Day");
+
+  const svgDaily = d3
+    .select("#daily-posts-chart")
+    .append("svg")
+    .attr("width", chartWidth + margin.left + margin.right)
+    .attr("height", chartHeight + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
 
   const dailyPosts = {};
   data.forEach((d) => {
@@ -283,22 +291,18 @@ function visualizePosts(data) {
     .map(([day, count]) => ({ day, count }))
     .sort((a, b) => d3.ascending(a.day, b.day));
 
-  const svgDaily = d3.select("#daily-chart");
-  const dailyWidth = window.innerWidth * 0.45 - 115;
-  const dailyHeight = +svgDaily.attr("height") - 60;
-  const gDaily = svgDaily.append("g").attr("transform", "translate(40,20)");
-
   const xDaily = d3
     .scaleBand()
     .domain(dailyData.map((d) => d.day))
-    .range([0, dailyWidth])
+    .range([0, chartWidth])
     .padding(0.4);
+
   const yDaily = d3
     .scaleLinear()
     .domain([0, d3.max(dailyData, (d) => d.count)])
-    .range([dailyHeight, 0]);
+    .range([chartHeight, 0]);
 
-  gDaily
+  svgDaily
     .selectAll(".bar")
     .data(dailyData)
     .enter()
@@ -307,10 +311,10 @@ function visualizePosts(data) {
     .attr("x", (d) => xDaily(d.day))
     .attr("y", (d) => yDaily(d.count))
     .attr("width", xDaily.bandwidth())
-    .attr("height", (d) => dailyHeight - yDaily(d.count))
+    .attr("height", (d) => chartHeight - yDaily(d.count))
     .attr("fill", "steelblue");
 
-  gDaily
+  svgDaily
     .selectAll(".bar-label")
     .data(dailyData)
     .enter()
@@ -320,15 +324,15 @@ function visualizePosts(data) {
     .attr("text-anchor", "middle")
     .text((d) => d.count);
 
-  gDaily
+  svgDaily
     .append("g")
-    .attr("transform", `translate(0, ${dailyHeight})`)
+    .attr("transform", `translate(0,${chartHeight})`)
     .call(d3.axisBottom(xDaily))
     .selectAll("text")
     .attr("transform", "rotate(-45)")
     .style("text-anchor", "end");
 
-  gDaily.append("g").call(d3.axisLeft(yDaily));
+  svgDaily.append("g").call(d3.axisLeft(yDaily));
 
   const wcWidth = window.innerWidth * 0.45 - 60,
     wcHeight = 500;
@@ -347,6 +351,8 @@ function visualizePosts(data) {
     text: word,
     size: count,
   }));
+
+  d3.select("#word-cloud").append("h3").text("Word Cloud");
 
   d3.layout
     .cloud()
@@ -383,56 +389,29 @@ function visualizePosts(data) {
 
   const container = d3.select("#card-grid");
   data.forEach((post) => {
-    const sentimentClass =
-      post.sentiment > 0.2
-        ? "positive"
-        : post.sentiment < -0.2
-        ? "negative"
-        : "neutral";
-
     const card = container.append("div").attr("class", "card");
 
-    card
-      .append("div")
-      .attr("class", `sentiment ${sentimentClass}`)
-      .text(`Sentiment Score: ${post.sentiment.toFixed(2)}`);
-
     const textBlock = card.append("div").attr("class", "text");
+
     textBlock
       .append("div")
       .attr("class", "text-label")
       .html(`<strong>Post Content:</strong>`);
-    textBlock.append("div").html(post.text);
 
-    card.append("div").attr("class", "meta").html(`
-            <strong class="meta">Author:</strong> <span class="meta-text">${
-              post.author
-            }</span><br>
-            <strong class="meta">Time:</strong> <span class="meta-text">${
-              post.created_at
-            }</span><br>
-            <strong class="meta">Post URL:</strong> <a href="${
-              post.post_url
-            }" target="_blank">View</a><br>
-            ${
-              post.reply_to
-                ? `<strong class="meta">Reply To:</strong> <span class="meta-text">${post.reply_to
-                    .split("/")
-                    .pop()}<br>`
-                : ""
-            }
-          `);
+    textBlock
+      .append("div")
+      .html(`<span class="content-text">${post.text}</span>`);
 
     if (post.links && post.links.length) {
       const linkList = post.links
         .map((url) => `<li><a href="${url}" target="_blank">${url}</a></li>`)
         .join("");
       card.append("div").attr("class", "meta").html(`
-              <strong class="meta">Detected Links:</strong>
-              <ul style="margin: 0.5rem 0 0 0rem;">
-                ${linkList}
-              </ul>
-            `);
+        <strong class="meta">Detected Links:</strong>
+        <ul style="margin: 0.5rem 0 0 0;">
+          ${linkList}
+        </ul>
+      `);
     }
 
     if (post.images && post.images.length) {
@@ -457,10 +436,55 @@ function visualizePosts(data) {
         const videoId =
           embed.uri.split("v=")[1]?.split("&")[0] || embed.uri.split("/").pop();
         card.append("div").attr("class", "meta").html(`
-                <strong class="meta">YouTube Embed:</strong><br>
-                <iframe width="100%" height="200" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
-              `);
+          <strong class="meta">YouTube Embed:</strong><br>
+          <iframe width="100%" height="200" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
+        `);
       }
     }
+
+    const metaBlock = card.append("div").attr("class", "meta");
+    metaBlock
+      .append("div")
+      .attr("class", "text-label")
+      .html(`<strong>Meta:</strong>`);
+
+    metaBlock.append("div").attr("class", "meta").html(`
+      <strong class="meta">Author:</strong> <span class="meta-text">${post.author}</span><br>
+      <strong class="meta">Time:</strong> <span class="meta-text">${post.created_at}</span><br>
+      <strong class="meta">Post URL:</strong> <a href="${post.post_url}" target="_blank">View</a><br>
+    `);
+
+    const analysisBlock = card.append("div").attr("class", "analysis");
+    analysisBlock
+      .append("div")
+      .attr("class", "text-label")
+      .html(`<strong>Analysis:</strong>`);
+
+    analysisBlock.append("div").attr("class", "analysis-details").html(`
+      <strong class="analysis">Sentiment Score:</strong>
+        <span class="analysis-text">${post.sentiment.toFixed(2)}</span><br>
+      <strong class="analysis">Subjectivity:</strong>
+        <span class="analysis-text">${post.subjectivity.toFixed(2)}</span><br>
+      <strong class="analysis">Words:</strong>
+        <span class="analysis-text">${post.word_count}</span>,
+      <strong class="analysis">Sentences:</strong>
+        <span class="analysis-text">${post.sentence_count}</span><br>
+      <strong class="analysis">Avg. Word Length:</strong>
+        <span class="analysis-text">${post.avg_word_length.toFixed(
+          2
+        )}</span><br>
+      <strong class="analysis">Avg. Sentence Length:</strong>
+        <span class="analysis-text">${post.avg_sentence_length.toFixed(
+          2
+        )}</span><br>
+      ${
+        post.noun_phrases && post.noun_phrases.length
+          ? `<strong class="analysis">Noun Phrases:</strong>
+            <span class="analysis-text">${post.noun_phrases.join(
+              ", "
+            )}</span><br>`
+          : ``
+      }
+    `);
   });
 }

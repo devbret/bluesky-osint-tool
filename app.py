@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, jsonify
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from bluesky_analyzer import run_analysis
 import os
 import json
@@ -16,38 +16,38 @@ APP_PASSWORD = os.getenv("APP_PASSWORD")
 def home():
     return render_template("index.html")
 
-
-from datetime import datetime, timezone, timedelta
-
 @app.route("/analyze", methods=["POST"])
 def analyze():
     try:
         query = request.form.get("query", "").strip()
         start_date_str = request.form.get("start_date", "").strip()
-        end_date_str = request.form.get("end_date", "").strip()
-        start_hour_str = request.form.get("start_hour", "").strip()
-        end_hour_str = request.form.get("end_hour", "").strip()
+        end_date_str   = request.form.get("end_date",   "").strip()
 
         if not query:
             return jsonify({"success": False, "error": "Search term is required."}), 400
 
         today = datetime.now(timezone.utc).date()
-        start_date = (
-            datetime.fromisoformat(start_date_str).replace(tzinfo=timezone.utc)
-            if start_date_str else datetime.combine(today - timedelta(days=1000), datetime.min.time(), tzinfo=timezone.utc)
-        )
-        end_date = (
-            datetime.fromisoformat(end_date_str).replace(tzinfo=timezone.utc)
-            if end_date_str else datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc)
-        )
-
-        start_hour = int(start_hour_str) if start_hour_str.isdigit() else 0
-        end_hour = int(end_hour_str) if end_hour_str.isdigit() else 24
+        if start_date_str:
+            sd = datetime.fromisoformat(start_date_str).date()
+            start_date = datetime.combine(sd, datetime.min.time(), tzinfo=timezone.utc)
+        else:
+            start_date = datetime.combine(
+                today - timedelta(days=1000),
+                datetime.min.time(),
+                tzinfo=timezone.utc
+            )
+        if end_date_str:
+            ed = datetime.fromisoformat(end_date_str).date()
+            end_date = datetime.combine(ed, datetime.max.time(), tzinfo=timezone.utc)
+        else:
+            end_date = datetime.combine(
+                today,
+                datetime.max.time(),
+                tzinfo=timezone.utc
+            )
 
         if start_date > end_date:
             return jsonify({"success": False, "error": "Start date must be before end date."}), 400
-        if start_hour >= end_hour:
-            return jsonify({"success": False, "error": "Start hour must be before end hour."}), 400
 
         count = run_analysis(
             username=USERNAME,
@@ -55,15 +55,13 @@ def analyze():
             query=query,
             start_date=start_date,
             end_date=end_date,
-            start_hour=start_hour,
-            end_hour=end_hour,
             limit=100
         )
 
         return jsonify({"success": True, "message": f"Analyzed {count} posts."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-    
+
 SAVE_DIR = "saved_results"
 os.makedirs(SAVE_DIR, exist_ok=True)
 

@@ -13,44 +13,55 @@ def linkify_text(text):
         text
     )
 
-def run_analysis(username, app_password, query, start_date, end_date, start_hour, end_hour, limit=100):
+def run_analysis(username, app_password, query, start_date, end_date, limit=100):
     client = Client()
     client.login(username, app_password)
-
     jwt_token = client._session.access_jwt
-    headers = {
-        "Authorization": f"Bearer {jwt_token}"
-    }
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+
+    since_iso = start_date.isoformat(timespec="milliseconds").replace("+00:00","Z")
+    until_iso = end_date.isoformat(timespec="milliseconds").replace("+00:00","Z")
 
     params = {
-        "q": query,
-        "limit": limit
+        "q":     query,
+        "limit": limit,
+        "since": since_iso,
+        "until": until_iso,
     }
 
-    response = requests.get("https://bsky.social/xrpc/app.bsky.feed.searchPosts", headers=headers, params=params)
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch posts: {response.status_code} {response.text}")
-
-    posts = response.json().get('posts', [])
+    response = requests.get(
+        "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts",
+        headers=headers,
+        params=params,
+    )
+    response.raise_for_status()
+    posts = response.json().get("posts", [])
     analyzed = []
 
     for post in posts:
         try:
-            text = post['record']['text']
-            sentiment = TextBlob(text).sentiment.polarity
-            created_at_raw = post.get('indexedAt', '')
-            created_at = datetime.fromisoformat(created_at_raw.replace('Z', '+00:00'))
+            text = post['record'].get('text', "")
+            blob = TextBlob(text)
 
-            if not (start_date <= created_at <= end_date):
-                continue
-            if not (start_hour <= created_at.hour < end_hour):
-                continue
+            polarity        = blob.sentiment.polarity
+            subjectivity    = blob.sentiment.subjectivity
+            word_count      = len(blob.words)
+            sentence_count  = len(blob.sentences)
+            avg_word_length = (sum(len(w) for w in blob.words) / word_count) if word_count else 0
+            avg_sentence_length = (word_count / sentence_count) if sentence_count else 0
+            noun_phrases    = blob.noun_phrases
+
+            created_at_raw = post['record'].get('createdAt', post.get('indexedAt', ''))
+            created_at = datetime.fromisoformat(created_at_raw.replace('Z', '+00:00')) if created_at_raw else None
 
             author_handle = post['author']['handle']
             uri = post.get('uri', '')
             reply_parent = post['record'].get('reply', {}).get('parent', {}).get('uri', None)
 
-            post_url = f"https://bsky.app/profile/{quote(author_handle)}/post/{uri.split('/')[-1]}" if uri else None
+            post_url = (
+                f"https://bsky.app/profile/{quote(author_handle)}/post/{uri.split('/')[-1]}"
+                if uri else None
+            )
 
             linked_text = linkify_text(text)
 
@@ -68,16 +79,26 @@ def run_analysis(username, app_password, query, start_date, end_date, start_hour
                 for img in embed['images']:
                     image_urls.append(img.get('fullsize'))
 
-            embed_record = post.get('embed', {}).get('record', {}).get('value', {})
-
-            external_embed = post.get('embed', {}).get('external', {})
+            embed_record   = embed.get('record', {}).get('value', {})
+            external_embed = embed.get('external', {})
 
             analyzed.append({
                 'text': text,
                 'linked_text': linked_text,
                 'author': author_handle,
-                'created_at': created_at.isoformat(),
-                'sentiment': sentiment,
+                'created_at': created_at.isoformat() if created_at else None,
+
+                'polarity': polarity,
+                'subjectivity': subjectivity,
+
+                'word_count': word_count,
+                'sentence_count': sentence_count,
+                'avg_word_length': avg_word_length,
+                'avg_sentence_length': avg_sentence_length,
+
+                'noun_phrases': noun_phrases,
+
+                'sentiment': polarity,
                 'reply_to': reply_parent,
                 'post_url': post_url,
                 'links': links,
