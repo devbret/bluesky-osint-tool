@@ -888,13 +888,30 @@ function visualizePosts(data) {
       .html(`<strong>Meta:</strong>`);
 
     metaBlock.append("div").attr("class", "meta").html(`
-      <strong class="meta">Author:</strong> <span class="meta-text">${post.author}</span><br>
-      <strong class="meta">Time:</strong> <span class="meta-text">${post.created_at}</span><br>
-      <strong class="meta">Replies:</strong> <span class="meta-text">${post.replyCount}</span><br>
-      <strong class="meta">Reposts:</strong> <span class="meta-text">${post.repostCount}</span><br>
-      <strong class="meta">Likes:</strong> <span class="meta-text">${post.likeCount}</span><br>
-      <strong class="meta">Quotes:</strong> <span class="meta-text">${post.quoteCount}</span><br>
-      <strong class="meta">Post URL:</strong> <a href="${post.post_url}" target="_blank">View</a><br>
+      <strong class="meta">Author:</strong> <span class="meta-text">${
+        post.author
+      }</span><br>
+      <strong class="meta">Time:</strong> <span class="meta-text">${
+        post.created_at
+      }</span><br>
+      <strong class="meta">Languages:</strong> <span class="meta-text">${
+        post.langs?.join(", ") || "N/A"
+      }</span><br>
+      <strong class="meta">Replies:</strong> <span class="meta-text">${
+        post.replyCount
+      }</span><br>
+      <strong class="meta">Reposts:</strong> <span class="meta-text">${
+        post.repostCount
+      }</span><br>
+      <strong class="meta">Likes:</strong> <span class="meta-text">${
+        post.likeCount
+      }</span><br>
+      <strong class="meta">Quotes:</strong> <span class="meta-text">${
+        post.quoteCount
+      }</span><br>
+      <strong class="meta">Post URL:</strong> <a href="${
+        post.post_url
+      }" target="_blank">View</a><br>
     `);
 
     const analysisBlock = card.append("div").attr("class", "analysis");

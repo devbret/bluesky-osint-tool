@@ -87,6 +87,8 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
             like_count   = post.get('likeCount',   0)
             quote_count  = post.get('quoteCount',  0)
 
+            langs = post['record'].get('langs', [])
+
             analyzed.append({
                 'text': text,
                 'linked_text': linked_text,
@@ -114,7 +116,9 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
                 'replyCount':  reply_count,
                 'repostCount': repost_count,
                 'likeCount':   like_count,
-                'quoteCount':  quote_count
+                'quoteCount':  quote_count,
+
+                'langs': langs
             })
 
         except Exception as e:
