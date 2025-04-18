@@ -38,6 +38,8 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
     posts = response.json().get("posts", [])
     analyzed = []
 
+    print(posts)
+
     for post in posts:
         try:
             text = post['record'].get('text', "")
@@ -82,6 +84,11 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
             embed_record   = embed.get('record', {}).get('value', {})
             external_embed = embed.get('external', {})
 
+            reply_count  = post.get('replyCount',  0)
+            repost_count = post.get('repostCount', 0)
+            like_count   = post.get('likeCount',   0)
+            quote_count  = post.get('quoteCount',  0)
+
             analyzed.append({
                 'text': text,
                 'linked_text': linked_text,
@@ -104,7 +111,12 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
                 'links': links,
                 'images': image_urls,
                 'embedded_post': embed_record,
-                'external_embed': external_embed
+                'external_embed': external_embed,
+
+                'replyCount':  reply_count,
+                'repostCount': repost_count,
+                'likeCount':   like_count,
+                'quoteCount':  quote_count
             })
 
         except Exception as e:

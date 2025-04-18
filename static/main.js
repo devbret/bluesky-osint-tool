@@ -98,6 +98,7 @@ function clearVisuals() {
   d3.select("#bigram-cloud").html("");
   d3.select("#hourly-posts-chart").html("");
   d3.select("#weekly-heatmap-chart").html("");
+  d3.select("#hourly-metrics-chart").html("");
 }
 
 function visualizePosts(data) {
@@ -664,6 +665,167 @@ function visualizePosts(data) {
 
   svgH.append("g").call(d3.axisLeft(yH));
 
+  const metricNames = ["replyCount", "repostCount", "likeCount", "quoteCount"];
+  const rawByHour = {};
+
+  data.forEach((d) => {
+    const dt = new Date(d.created_at);
+    const day = dt.toISOString().slice(0, 10);
+    const hr = dt.getHours().toString().padStart(2, "0");
+    const key = `${day} ${hr}:00`;
+
+    if (!rawByHour[key]) {
+      rawByHour[key] = metricNames.reduce((obj, m) => {
+        obj[m] = [];
+        return obj;
+      }, {});
+    }
+
+    metricNames.forEach((m) => {
+      rawByHour[key][m].push(d[m] || 0);
+    });
+  });
+
+  const hoursValue = Object.keys(rawByHour)
+    .map((k) => new Date(k.replace(" ", "T")))
+    .sort((a, b) => a - b);
+  const minDtValue = hoursValue[0];
+  const maxDtValue = hoursValue[hoursValue.length - 1];
+  const allHoursValue = [];
+  for (
+    let t = minDtValue.getTime();
+    t <= maxDtValue.getTime();
+    t += 1000 * 60 * 60
+  ) {
+    allHoursValue.push(new Date(t));
+  }
+
+  const hourlyAverages = allHoursValue.map((dt) => {
+    const key = `${dt.toISOString().slice(0, 10)} ${dt
+      .getHours()
+      .toString()
+      .padStart(2, "0")}:00`;
+    const bucket =
+      rawByHour[key] || metricNames.reduce((o, m) => ((o[m] = []), o), {});
+
+    const avg = {};
+    metricNames.forEach((m) => {
+      const arr = bucket[m];
+      const sum = arr.reduce((s, v) => s + v, 0);
+      avg[m] = arr.length ? sum / arr.length : 0;
+    });
+    return { dt, ...avg };
+  });
+
+  const series = metricNames.map((m) => ({
+    name: m,
+    values: hourlyAverages.map((d) => ({ dt: d.dt, value: d[m] })),
+  }));
+
+  d3.select("#hourly-metrics-chart")
+    .append("h3")
+    .text("Average Hourly Engagements");
+
+  const svgMulti = d3
+    .select("#hourly-metrics-chart")
+    .append("svg")
+    .attr("width", chartWidthH + marginH.left + marginH.right)
+    .attr("height", chartHeightH + marginH.top + marginH.bottom)
+    .append("g")
+    .attr("transform", `translate(${marginH.left},${marginH.top})`);
+
+  const xValue = d3
+    .scaleTime()
+    .domain([minDtValue, maxDtValue])
+    .range([0, chartWidthH]);
+
+  const maxY = d3.max(series, (s) => d3.max(s.values, (d) => d.value));
+  const yValue = d3
+    .scaleLinear()
+    .domain([0, maxY])
+    .nice()
+    .range([chartHeightH, 0]);
+
+  const color = d3.scaleOrdinal(d3.schemeCategory10).domain(metricNames);
+
+  const line = d3
+    .line()
+    .x((d) => xValue(d.dt))
+    .y((d) => yValue(d.value));
+
+  svgMulti
+    .selectAll(".metric-line")
+    .data(series)
+    .enter()
+    .append("path")
+    .attr("class", "metric-line")
+    .attr("fill", "none")
+    .attr("stroke", (d) => color(d.name))
+    .attr("stroke-width", 2)
+    .attr("d", (d) => line(d.values));
+
+  series.forEach((s) => {
+    svgMulti
+      .selectAll(`.dot-${s.name}`)
+      .data(s.values)
+      .enter()
+      .append("circle")
+      .attr("class", `dot dot-${s.name}`)
+      .attr("cx", (d) => xValue(d.dt))
+      .attr("cy", (d) => yValue(d.value))
+      .attr("r", 3)
+      .attr("fill", color(s.name));
+  });
+
+  svgMulti
+    .append("g")
+    .attr("transform", `translate(0,${chartHeightH})`)
+    .call(
+      d3
+        .axisBottom(xValue)
+        .ticks(Math.min(allHoursValue.length, 10))
+        .tickFormat(d3.timeFormat("%m-%d %H:%M"))
+    )
+    .selectAll("text")
+    .attr("transform", "rotate(-65)")
+    .style("text-anchor", "end");
+  svgMulti.append("g").call(d3.axisLeft(yValue));
+
+  const spacing = 120;
+  const totalWidth = spacing * series.length;
+  const startX = (chartWidthH - totalWidth) / 2;
+
+  function formatMetricName(name) {
+    return name
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (s) => s.toUpperCase());
+  }
+
+  const legend = svgMulti
+    .append("g")
+    .attr("class", "legend")
+    .attr("transform", `translate(${startX}, ${chartHeightH + 66})`);
+
+  series.forEach((s, i) => {
+    const item = legend
+      .append("g")
+      .attr("transform", `translate(${i * spacing}, 0)`);
+
+    item
+      .append("rect")
+      .attr("width", 10)
+      .attr("height", 10)
+      .attr("fill", color(s.name));
+
+    item
+      .append("text")
+      .attr("x", 15)
+      .attr("y", 10)
+      .text(formatMetricName(s.name))
+      .style("font-size", "12px")
+      .style("alignment-baseline", "hanging");
+  });
+
   const container = d3.select("#card-grid");
   data.forEach((post) => {
     const card = container.append("div").attr("class", "card");
@@ -728,6 +890,10 @@ function visualizePosts(data) {
     metaBlock.append("div").attr("class", "meta").html(`
       <strong class="meta">Author:</strong> <span class="meta-text">${post.author}</span><br>
       <strong class="meta">Time:</strong> <span class="meta-text">${post.created_at}</span><br>
+      <strong class="meta">Replies:</strong> <span class="meta-text">${post.replyCount}</span><br>
+      <strong class="meta">Reposts:</strong> <span class="meta-text">${post.repostCount}</span><br>
+      <strong class="meta">Likes:</strong> <span class="meta-text">${post.likeCount}</span><br>
+      <strong class="meta">Quotes:</strong> <span class="meta-text">${post.quoteCount}</span><br>
       <strong class="meta">Post URL:</strong> <a href="${post.post_url}" target="_blank">View</a><br>
     `);
 
