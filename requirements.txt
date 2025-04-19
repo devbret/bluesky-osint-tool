@@ -1,5 +1,5 @@
-Flask
-python-dotenv
 atproto
 requests
 textblob
+flask
+python-dotenv

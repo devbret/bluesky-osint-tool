@@ -154,6 +154,12 @@ svg {
   transform: translateY(-4px);
 }
 
+.top-of-card p {
+  line-height: 1rem;
+  margin: 0px;
+  padding: 0px;
+}
+
 .text-label {
   font-size: 16px;
   font-style: normal;

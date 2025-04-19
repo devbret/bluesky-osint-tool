@@ -54,7 +54,10 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
             created_at_raw = post['record'].get('createdAt', post.get('indexedAt', ''))
             created_at = datetime.fromisoformat(created_at_raw.replace('Z', '+00:00')) if created_at_raw else None
 
-            author_handle = post['author']['handle']
+            author = post.get('author', {})
+            author_handle = author.get('handle', '')
+            author_display_name = author.get('displayName', '')
+            author_avatar = author.get('avatar', '')
             uri = post.get('uri', '')
             reply_parent = post['record'].get('reply', {}).get('parent', {}).get('uri', None)
 
@@ -118,7 +121,10 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
                 'likeCount':   like_count,
                 'quoteCount':  quote_count,
 
-                'langs': langs
+                'langs': langs,
+
+                'author_display_name': author_display_name,
+                'author_avatar': author_avatar
             })
 
         except Exception as e:

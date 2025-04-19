@@ -830,12 +830,23 @@ function visualizePosts(data) {
   data.forEach((post) => {
     const card = container.append("div").attr("class", "card");
 
-    const textBlock = card.append("div").attr("class", "text");
+    const textBlock = card.append("div");
 
-    textBlock
-      .append("div")
-      .attr("class", "text-label")
-      .html(`<strong>Post Content:</strong>`);
+    textBlock.append("div").attr("class", "text-label").html(`
+        <div class="top-of-card" style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem;">
+          <img src="${
+            post.author_avatar
+          }" alt="Avatar" style="width: 43px; height: 43px; border-radius: 50%; object-fit: cover;">
+          <div style="display: flex; flex-direction: column;">
+            <p><strong class="meta">Display Name:</strong> <span class="meta-text">${
+              post.author_display_name || "N/A"
+            }</span></p>
+            <p><strong class="meta">Handle:</strong> <span class="meta-text">${
+              post.author
+            }</span></p>
+          </div>
+        </div>
+        <strong>Post Content:</strong>`);
 
     textBlock
       .append("div")
@@ -888,9 +899,6 @@ function visualizePosts(data) {
       .html(`<strong>Meta:</strong>`);
 
     metaBlock.append("div").attr("class", "meta").html(`
-      <strong class="meta">Author:</strong> <span class="meta-text">${
-        post.author
-      }</span><br>
       <strong class="meta">Time:</strong> <span class="meta-text">${
         post.created_at
       }</span><br>
