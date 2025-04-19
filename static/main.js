@@ -96,6 +96,7 @@ function clearVisuals() {
   d3.select("#daily-posts-chart").html("");
   d3.select("#word-cloud").html("");
   d3.select("#bigram-cloud").html("");
+  d3.select("#trigram-cloud").html("");
   d3.select("#hourly-posts-chart").html("");
   d3.select("#weekly-heatmap-chart").html("");
   d3.select("#hourly-metrics-chart").html("");
@@ -459,6 +460,72 @@ function visualizePosts(data) {
       .attr("height", bcHeight)
       .append("g")
       .attr("transform", `translate(${bcWidth / 2},${bcHeight / 2})`)
+      .selectAll("text")
+      .data(words)
+      .enter()
+      .append("text")
+      .style("font-size", (d) => d.size + "px")
+      .style("font-family", "Impact")
+      .style("fill", () => d3.schemeCategory10[Math.floor(Math.random() * 10)])
+      .attr("text-anchor", "middle")
+      .attr("transform", (d) => `translate(${d.x},${d.y})rotate(${d.rotate})`)
+      .text((d) => d.text);
+  }
+
+  let allTextTrigram = data
+    .map((d) => d.text)
+    .join(" ")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ");
+
+  const wordsArrayTrigram = allTextTrigram
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
+
+  const trigrams = [];
+  for (let i = 0; i < wordsArrayTrigram.length - 2; i++) {
+    trigrams.push(
+      wordsArrayTrigram[i] +
+        " " +
+        wordsArrayTrigram[i + 1] +
+        " " +
+        wordsArrayTrigram[i + 2]
+    );
+  }
+
+  const trigramFreq = {};
+  trigrams.forEach((tg) => {
+    trigramFreq[tg] = (trigramFreq[tg] || 0) + 1;
+  });
+
+  const trigramEntries = Object.entries(trigramFreq).map(([text, count]) => ({
+    text,
+    size: count,
+  }));
+
+  const tcWidth = window.innerWidth * 0.45 - 60,
+    tcHeight = 500;
+
+  d3.select("#trigram-cloud").append("h3").text("Trigram Cloud");
+
+  d3.layout
+    .cloud()
+    .size([tcWidth, tcHeight])
+    .words(trigramEntries)
+    .padding(5)
+    .rotate(() => (Math.random() < 0.5 ? 0 : 90))
+    .font("Impact")
+    .fontSize((d) => 10 + d.size)
+    .on("end", drawTrigramCloud)
+    .start();
+
+  function drawTrigramCloud(words) {
+    d3.select("#trigram-cloud")
+      .append("svg")
+      .attr("width", tcWidth)
+      .attr("height", tcHeight)
+      .append("g")
+      .attr("transform", `translate(${tcWidth / 2},${tcHeight / 2})`)
       .selectAll("text")
       .data(words)
       .enter()
