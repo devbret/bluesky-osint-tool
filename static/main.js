@@ -964,6 +964,45 @@ function visualizePosts(data) {
         `);
       }
     }
+    console.log(post.uri);
+    if (post.uri && post.uri.startsWith("at://")) {
+      const isInThread = post.reply_to || post.replyCount > 0;
+      if (isInThread) {
+        const threadButton = card
+          .append("button")
+          .text("View Thread")
+          .style("display", "block")
+          .style("width", "100px")
+          .style("margin", "0px auto")
+          .on("click", () => {
+            fetch("/get_thread", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ uri: post.uri }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.success && data.thread?.thread) {
+                  const root = data.thread.thread;
+                  threadContainer.html("");
+                  renderThreadNode(root, threadContainer);
+                } else {
+                  alert("Error loading thread: " + data.error);
+                }
+              })
+              .catch((err) => {
+                alert("Failed to load thread.");
+              });
+          });
+
+        const threadContainer = card
+          .append("div")
+          .attr("class", "thread-view")
+          .style("margin-top", "0")
+          .style("border-left", "3px solid #ccc")
+          .style("padding-left", "1rem");
+      }
+    }
 
     const metaBlock = card.append("div").attr("class", "meta");
     metaBlock
@@ -1059,4 +1098,92 @@ function visualizePosts(data) {
   [likesInput, repliesInput, repostsInput, quotesInput].forEach((el) =>
     el.addEventListener("input", applyFilters)
   );
+}
+
+function renderThreadNode(node, container) {
+  const threadChain = [];
+
+  let current = node;
+  while (current && current.post) {
+    threadChain.unshift(current);
+    current = current.parent;
+  }
+
+  let lastRendered = container;
+  threadChain.forEach((nodePart) => {
+    const postData = nodePart.post;
+    const author =
+      postData.author.displayName || postData.author.handle || "Unknown";
+    const text = postData.record.text || "";
+    const createdAt = postData.record.createdAt || "";
+    const postUrl = `https://bsky.app/profile/${
+      postData.author.handle
+    }/post/${postData.uri.split("/").pop()}`;
+
+    const postDiv = lastRendered
+      .append("div")
+      .attr("class", "thread-post")
+      .style("margin-bottom", "0.75rem");
+
+    postDiv.html(`
+      <div style="margin-bottom: 0.25rem;">
+        <span style="font-size: 13px;"><strong>${author}</strong></span> 
+        <a href="${postUrl}" target="_blank" style="font-size: 13px;">(view)</a><br>
+        <span style="font-size: 13px; color: #555;">${new Date(
+          createdAt
+        ).toLocaleString()}</span>
+      </div>
+      <div style="background: #f9f9f9; padding: 0.5rem; border-radius: 6px;">
+        ${text}
+      </div>
+    `);
+
+    lastRendered = postDiv;
+  });
+
+  function renderReplies(replies, parentEl) {
+    if (!Array.isArray(replies) || replies.length === 0) return;
+
+    replies.forEach((replyNode) => {
+      if (!replyNode.post) return;
+
+      const postData = replyNode.post;
+      const author =
+        postData.author.displayName || postData.author.handle || "Unknown";
+      const text = postData.record.text || "";
+      const createdAt = postData.record.createdAt || "";
+      const postUrl = `https://bsky.app/profile/${
+        postData.author.handle
+      }/post/${postData.uri.split("/").pop()}`;
+
+      const replyDiv = parentEl
+        .append("div")
+        .attr("class", "thread-reply")
+        .style("margin-top", "1rem")
+        .style("border-left", "3px solid #ddd")
+        .style("margin-left", "1rem")
+        .style("padding-left", "1rem");
+
+      replyDiv.html(`
+        <div style="margin-bottom: 0.25rem;">
+          <span style="font-size: 13px;"><strong>${author}</strong></span> 
+          <a href="${postUrl}" target="_blank" style="font-size: 13px;">(view)</a><br>
+          <span style="font-size: 13px; color: #555;">${new Date(
+            createdAt
+          ).toLocaleString()}</span>
+        </div>
+        <div style="background: #f9f9f9; padding: 0.5rem; border-radius: 6px;">
+          ${text}
+        </div>
+      `);
+
+      if (replyNode.replies?.length) {
+        renderReplies(replyNode.replies, replyDiv);
+      }
+    });
+  }
+
+  if (node.replies?.length) {
+    renderReplies(node.replies, lastRendered);
+  }
 }

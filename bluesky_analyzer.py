@@ -72,9 +72,9 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
             links = []
             for facet in facets:
                 for feature in facet.get('features', []):
-                    uri = feature.get('uri')
-                    if uri:
-                        links.append(uri)
+                    link_uri = feature.get('uri')
+                    if link_uri:
+                        links.append(link_uri)
 
             image_urls = []
             embed = post.get('embed', {})
@@ -97,17 +97,13 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
                 'linked_text': linked_text,
                 'author': author_handle,
                 'created_at': created_at.isoformat() if created_at else None,
-
                 'polarity': polarity,
                 'subjectivity': subjectivity,
-
                 'word_count': word_count,
                 'sentence_count': sentence_count,
                 'avg_word_length': avg_word_length,
                 'avg_sentence_length': avg_sentence_length,
-
                 'noun_phrases': noun_phrases,
-
                 'sentiment': polarity,
                 'reply_to': reply_parent,
                 'post_url': post_url,
@@ -115,16 +111,14 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
                 'images': image_urls,
                 'embedded_post': embed_record,
                 'external_embed': external_embed,
-
                 'replyCount':  reply_count,
                 'repostCount': repost_count,
                 'likeCount':   like_count,
                 'quoteCount':  quote_count,
-
                 'langs': langs,
-
                 'author_display_name': author_display_name,
-                'author_avatar': author_avatar
+                'author_avatar': author_avatar,
+                'uri': uri
             })
 
         except Exception as e:
@@ -134,3 +128,17 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
         json.dump(analyzed, f, indent=4)
 
     return len(analyzed)
+
+def get_post_thread(username, app_password, post_uri):
+    client = Client()
+    client.login(username, app_password)
+    jwt_token = client._session.access_jwt
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+
+    response = requests.get(
+        "https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread",
+        headers=headers,
+        params={"uri": post_uri}
+    )
+    response.raise_for_status()
+    return response.json()

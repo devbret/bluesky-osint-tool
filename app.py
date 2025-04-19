@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, jsonify
 from datetime import datetime, timezone, timedelta
 from bluesky_analyzer import run_analysis
+from bluesky_analyzer import get_post_thread
 import os
 import json
 from dotenv import load_dotenv
@@ -98,6 +99,18 @@ def load_saved(filename):
         with open(filepath) as f:
             return jsonify(json.load(f))
     return jsonify({"error": "File not found"}), 404
+
+@app.route("/get_thread", methods=["POST"])
+def get_thread():
+    try:
+        post_uri = request.json.get("uri")
+        if not post_uri:
+            return jsonify({"success": False, "error": "Post URI is required."}), 400
+
+        thread_data = get_post_thread(USERNAME, APP_PASSWORD, post_uri)
+        return jsonify({"success": True, "thread": thread_data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
