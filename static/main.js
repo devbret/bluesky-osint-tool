@@ -895,7 +895,13 @@ function visualizePosts(data) {
 
   const container = d3.select("#card-grid");
   data.forEach((post) => {
-    const card = container.append("div").attr("class", "card");
+    const card = container
+      .append("div")
+      .attr("class", "card")
+      .attr("data-likes", post.likeCount)
+      .attr("data-replies", post.replyCount)
+      .attr("data-reposts", post.repostCount)
+      .attr("data-quotes", post.quoteCount);
 
     const textBlock = card.append("div");
 
@@ -1022,4 +1028,35 @@ function visualizePosts(data) {
       }
     `);
   });
+
+  const likesInput = document.getElementById("likes-filter");
+  const repliesInput = document.getElementById("replies-filter");
+  const repostsInput = document.getElementById("reposts-filter");
+  const quotesInput = document.getElementById("quotes-filter");
+
+  function applyFilters() {
+    const minLikes = parseInt(likesInput.value, 10) || 0;
+    const minReplies = parseInt(repliesInput.value, 10) || 0;
+    const minReposts = parseInt(repostsInput.value, 10) || 0;
+    const minQuotes = parseInt(quotesInput.value, 10) || 0;
+
+    document.querySelectorAll("#card-grid .card").forEach((cardEl) => {
+      const likes = parseInt(cardEl.getAttribute("data-likes"), 10) || 0;
+      const replies = parseInt(cardEl.getAttribute("data-replies"), 10) || 0;
+      const reposts = parseInt(cardEl.getAttribute("data-reposts"), 10) || 0;
+      const quotes = parseInt(cardEl.getAttribute("data-quotes"), 10) || 0;
+
+      cardEl.style.display =
+        likes >= minLikes &&
+        replies >= minReplies &&
+        reposts >= minReposts &&
+        quotes >= minQuotes
+          ? ""
+          : "none";
+    });
+  }
+
+  [likesInput, repliesInput, repostsInput, quotesInput].forEach((el) =>
+    el.addEventListener("input", applyFilters)
+  );
 }

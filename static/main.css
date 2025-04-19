@@ -74,7 +74,7 @@ ul li {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
   gap: 0.5rem;
-  justify-content: center;
+  justify-content: space-around;
   flex-wrap: wrap;
 }
 
@@ -122,6 +122,23 @@ ul li {
 #query-form button:hover,
 .save-load-controls button:hover {
   background-color: #3b6ea0;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-controls label {
+  font-weight: bold;
+}
+
+.filter-controls input[type="number"] {
+  width: 123px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 svg {

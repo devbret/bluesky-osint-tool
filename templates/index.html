@@ -23,10 +23,38 @@
       </form>
 
       <div class="save-load-controls search-controls">
-        <button id="save-button">Save Current Search</button>
-        <select id="load-select">
-          <option value="">Load Saved Search</option>
-        </select>
+        <div class="filter-controls">
+          <input
+            type="number"
+            id="likes-filter"
+            placeholder="Min Likes"
+            min="0"
+          />
+          <input
+            type="number"
+            id="replies-filter"
+            placeholder="Min Replies"
+            min="0"
+          />
+          <input
+            type="number"
+            id="reposts-filter"
+            placeholder="Min Reposts"
+            min="0"
+          />
+          <input
+            type="number"
+            id="quotes-filter"
+            placeholder="Min Quotes"
+            min="0"
+          />
+        </div>
+        <div>
+          <button id="save-button">Save Current Search</button>
+          <select id="load-select">
+            <option value="">Load Saved Search</option>
+          </select>
+        </div>
       </div>
     </section>
 
