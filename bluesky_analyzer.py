@@ -60,6 +60,7 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
             author_avatar = author.get('avatar', '')
             author_did = author.get('did', '')
             uri = post.get('uri', '')
+            cid = post.get('cid', '')
             reply_parent = post['record'].get('reply', {}).get('parent', {}).get('uri', None)
 
             post_url = (
@@ -120,7 +121,8 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
                 'author_display_name': author_display_name,
                 'author_avatar': author_avatar,
                 'uri': uri,
-                'author_did': author_did
+                'author_did': author_did,
+                'cid': cid
             })
 
         except Exception as e:
@@ -164,3 +166,43 @@ def unfollow_user(username, app_password, follow_uri):
         return {"success": True}
     except Exception as e:
         raise RuntimeError(f"Failed to unfollow user: {e}")
+    
+def like_post(username, app_password, uri, cid):
+    client = Client()
+    client.login(username, app_password)
+
+    try:
+        result = client.like(uri=uri, cid=cid)
+        return {"uri": result.uri}
+    except Exception as e:
+        raise RuntimeError(f"Failed to like post: {e}")
+
+def unlike_post(username, app_password, like_uri):
+    client = Client()
+    client.login(username, app_password)
+
+    try:
+        client.delete_like(like_uri)
+        return {"success": True}
+    except Exception as e:
+        raise RuntimeError(f"Failed to unlike post: {e}")
+
+def repost_post(username, app_password, uri, cid):
+    client = Client()
+    client.login(username, app_password)
+
+    try:
+        result = client.repost(uri=uri, cid=cid)
+        return {"uri": result.uri}
+    except Exception as e:
+        raise RuntimeError(f"Failed to repost: {e}")
+
+def unrepost_post(username, app_password, repost_uri):
+    client = Client()
+    client.login(username, app_password)
+
+    try:
+        client.delete_repost(repost_uri)
+        return {"success": True}
+    except Exception as e:
+        raise RuntimeError(f"Failed to unrepost: {e}")

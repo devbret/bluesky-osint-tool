@@ -4,6 +4,10 @@ from bluesky_analyzer import run_analysis
 from bluesky_analyzer import get_post_thread
 from bluesky_analyzer import unfollow_user
 from bluesky_analyzer import follow_user
+from bluesky_analyzer import like_post
+from bluesky_analyzer import unlike_post
+from bluesky_analyzer import repost_post
+from bluesky_analyzer import unrepost_post
 from dotenv import load_dotenv
 import os
 import json
@@ -137,6 +141,64 @@ def unfollow():
 
         result = unfollow_user(USERNAME, APP_PASSWORD, follow_uri)
         return jsonify({"success": True, "message": "Unfollowed successfully.", "data": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/like", methods=["POST"])
+def like():
+    try:
+        data = request.get_json()
+        uri = data.get("uri")
+        cid = data.get("cid")
+
+        if not uri or not cid:
+            return jsonify({"success": False, "error": "URI and CID are required to like a post."}), 400
+
+        result = like_post(USERNAME, APP_PASSWORD, uri, cid)
+        return jsonify({"success": True, "message": "Post liked.", "data": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/unlike", methods=["POST"])
+def unlike():
+    try:
+        data = request.get_json()
+        like_uri = data.get("uri")
+
+        if not like_uri:
+            return jsonify({"success": False, "error": "Like URI is required to unlike."}), 400
+
+        result = unlike_post(USERNAME, APP_PASSWORD, like_uri)
+        return jsonify({"success": True, "message": "Post unliked.", "data": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/repost", methods=["POST"])
+def repost():
+    try:
+        data = request.get_json()
+        uri = data.get("uri")
+        cid = data.get("cid")
+
+        if not uri or not cid:
+            return jsonify({"success": False, "error": "URI and CID are required to repost."}), 400
+
+        result = repost_post(USERNAME, APP_PASSWORD, uri, cid)
+        return jsonify({"success": True, "message": "Post reposted.", "data": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/unrepost", methods=["POST"])
+def unrepost():
+    try:
+        data = request.get_json()
+        repost_uri = data.get("uri")
+
+        if not repost_uri:
+            return jsonify({"success": False, "error": "Repost URI is required to unrepost."}), 400
+
+        result = unrepost_post(USERNAME, APP_PASSWORD, repost_uri)
+        return jsonify({"success": True, "message": "Post unreposted.", "data": result})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

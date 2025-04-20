@@ -905,30 +905,66 @@ function visualizePosts(data) {
 
     const textBlock = card.append("div");
 
-    textBlock.append("div").attr("class", "text-label").html(`
-        <div class="top-of-card" style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem;">
-          <img src="${
-            post.author_avatar
-          }" alt="Avatar" style="width: 66px; height: 66px; border-radius: 50%; object-fit: cover;">
-          <div style="display: flex; flex-direction: column;">
-            <p><strong class="meta">Display Name:</strong> <span class="meta-text">${
-              post.author_display_name || "N/A"
-            }</span></p>
-            <p><strong class="meta">Handle:</strong> <span class="meta-text">${
-              post.author
-            }</span></p>
-            ${
-              post.author_did
-                ? `<button class="follow-button" style="margin-top: 0.13rem; width: fit-content;">Follow</button>`
-                : ""
-            }
-          </div>
-        </div>
-        <strong>Post Content:</strong>
-      `);
+    const topRow = textBlock
+      .append("div")
+      .attr("class", "top-of-card")
+      .style("display", "flex")
+      .style("align-items", "flex-start")
+      .style("gap", "1rem")
+      .style("margin-bottom", "0.5rem");
+
+    topRow
+      .append("img")
+      .attr("src", post.author_avatar)
+      .attr("alt", "Avatar")
+      .style("width", "66px")
+      .style("height", "66px")
+      .style("border-radius", "50%")
+      .style("object-fit", "cover");
+
+    const authorInfo = topRow
+      .append("div")
+      .style("display", "flex")
+      .style("flex-direction", "column");
+
+    authorInfo
+      .append("p")
+      .html(
+        `<strong class="meta">Display Name:</strong> <span class="meta-text">${
+          post.author_display_name || "N/A"
+        }</span>`
+      );
+
+    authorInfo
+      .append("p")
+      .html(
+        `<strong class="meta">Handle:</strong> <span class="meta-text">${post.author}</span>`
+      );
+
+    const buttonGroup = authorInfo
+      .append("div")
+      .attr("class", "button-group")
+      .style("display", "flex")
+      .style("gap", "10px")
+      .style("margin-top", "0.3rem")
+      .style("flex-wrap", "wrap");
+
+    if (post.post_url) {
+      buttonGroup
+        .append("button")
+        .attr("class", "view-button")
+        .text("View")
+        .on("click", () => {
+          window.open(post.post_url, "_blank");
+        });
+    }
 
     if (post.author_did) {
-      const followButton = textBlock.select(".follow-button");
+      const followButton = buttonGroup
+        .append("button")
+        .attr("class", "follow-button")
+        .text("Follow");
+
       let followed = false;
       let followUri = null;
 
@@ -949,9 +985,7 @@ function visualizePosts(data) {
                 alert(`Failed to follow: ${data.error}`);
               }
             })
-            .catch(() => {
-              alert("Follow request failed.");
-            });
+            .catch(() => alert("Follow request failed."));
         } else {
           if (!followUri) {
             alert("Missing follow URI. Cannot unfollow.");
@@ -973,16 +1007,117 @@ function visualizePosts(data) {
                 alert(`Failed to unfollow: ${data.error}`);
               }
             })
-            .catch(() => {
-              alert("Unfollow request failed.");
-            });
+            .catch(() => alert("Unfollow request failed."));
         }
       });
     }
 
-    textBlock
-      .append("div")
-      .html(`<span class="content-text">${post.text}</span>`);
+    if (post.uri && post.cid) {
+      const likeButton = buttonGroup
+        .append("button")
+        .attr("class", "like-button")
+        .text("Like");
+
+      let liked = false;
+      let likeUri = null;
+
+      likeButton.on("click", () => {
+        if (!liked) {
+          fetch("/like", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uri: post.uri, cid: post.cid }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                likeUri = data.data?.uri || null;
+                liked = true;
+                likeButton.text("Unlike");
+              } else {
+                alert(`Failed to like: ${data.error}`);
+              }
+            })
+            .catch(() => alert("Like request failed."));
+        } else {
+          if (!likeUri) {
+            alert("Missing like URI. Cannot unlike.");
+            return;
+          }
+
+          fetch("/unlike", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uri: likeUri }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                liked = false;
+                likeUri = null;
+                likeButton.text("Like");
+              } else {
+                alert(`Failed to unlike: ${data.error}`);
+              }
+            })
+            .catch(() => alert("Unlike request failed."));
+        }
+      });
+
+      const repostButton = buttonGroup
+        .append("button")
+        .attr("class", "repost-button")
+        .text("Repost");
+
+      let reposted = false;
+      let repostUri = null;
+
+      repostButton.on("click", () => {
+        if (!reposted) {
+          fetch("/repost", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uri: post.uri, cid: post.cid }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                repostUri = data.data?.uri || null;
+                reposted = true;
+                repostButton.text("Unrepost");
+              } else {
+                alert(`Failed to repost: ${data.error}`);
+              }
+            })
+            .catch(() => alert("Repost request failed."));
+        } else {
+          if (!repostUri) {
+            alert("Missing repost URI. Cannot unrepost.");
+            return;
+          }
+
+          fetch("/unrepost", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uri: repostUri }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                reposted = false;
+                repostUri = null;
+                repostButton.text("Repost");
+              } else {
+                alert(`Failed to unrepost: ${data.error}`);
+              }
+            })
+            .catch(() => alert("Unrepost request failed."));
+        }
+      });
+    }
+
+    textBlock.append("div").html(`<strong>Post Content:</strong><br>
+        <span class="content-text">${post.text}</span>`);
 
     if (post.links && post.links.length) {
       const linkList = post.links
@@ -1023,16 +1158,14 @@ function visualizePosts(data) {
         `);
       }
     }
-    console.log(post.uri);
+
     if (post.uri && post.uri.startsWith("at://")) {
       const isInThread = post.reply_to || post.replyCount > 0;
       if (isInThread) {
         const threadButton = card
           .append("button")
-          .text("View Thread")
-          .style("display", "block")
-          .style("width", "100px")
-          .style("margin", "0px auto")
+          .text("Display Thread")
+          .attr("class", "view-thread-button")
           .on("click", () => {
             fetch("/get_thread", {
               method: "POST",
@@ -1088,9 +1221,6 @@ function visualizePosts(data) {
       <strong class="meta">Quotes:</strong> <span class="meta-text">${
         post.quoteCount
       }</span><br>
-      <strong class="meta">Post URL:</strong> <a href="${
-        post.post_url
-      }" target="_blank">View</a><br>
     `);
 
     const analysisBlock = card.append("div").attr("class", "analysis");
