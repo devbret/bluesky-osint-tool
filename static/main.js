@@ -95,11 +95,14 @@ document.getElementById("load-button").addEventListener("click", async () => {
       })
     );
 
-    const combined = results.flat().sort((a, b) => {
-      const timeA = new Date(a.created_at).getTime();
-      const timeB = new Date(b.created_at).getTime();
-      return timeA - timeB;
-    });
+    const combined = results
+      .flat()
+      .sort((a, b) => {
+        const timeA = new Date(a.created_at).getTime();
+        const timeB = new Date(b.created_at).getTime();
+        return timeA - timeB;
+      })
+      .reverse();
 
     console.log("Chronologically Sorted Results:", combined);
     clearVisuals();
