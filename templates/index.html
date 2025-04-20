@@ -19,7 +19,7 @@
         />
         <input type="date" id="start-date" name="start_date" />
         <input type="date" id="end-date" name="end_date" />
-        <button type="submit">Analyze</button>
+        <button type="submit">Search</button>
       </form>
 
       <div class="save-load-controls search-controls">
@@ -49,11 +49,10 @@
             min="0"
           />
         </div>
-        <div>
+        <div id="save-load-controls">
           <button id="save-button">Save Current Search</button>
-          <select id="load-select">
-            <option value="">Load Saved Search</option>
-          </select>
+          <select id="load-select" multiple></select>
+          <button id="load-button">Load</button>
         </div>
       </div>
     </section>

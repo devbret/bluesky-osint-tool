@@ -53,7 +53,7 @@ ul li {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 1rem;
+  padding: 0rem 1rem;
   background: white;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -124,7 +124,8 @@ ul li {
   background-color: #3b6ea0;
 }
 
-.filter-controls {
+.filter-controls,
+#save-load-controls {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -286,4 +287,22 @@ svg {
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: center;
+}
+
+form.search-controls,
+div.save-load-controls.search-controls {
+  max-height: 100px;
+  min-height: 100px;
+  padding: 0rem 1rem;
+}
+
+#load-select {
+  height: auto;
+  font-size: 0.85rem;
+  padding: 0.3rem;
+  line-height: 1.1;
+  min-width: 243px;
+  max-width: 243px;
+  max-height: 66px;
+  overflow-y: auto;
 }

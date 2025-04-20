@@ -59,7 +59,9 @@ function loadSavedList() {
     .then((res) => res.json())
     .then((files) => {
       const select = document.getElementById("load-select");
-      select.innerHTML = `<option value="">Load Saved Search</option>`;
+
+      select.innerHTML = "";
+
       files
         .filter((file) => file.endsWith(".json"))
         .forEach((file) => {
@@ -70,24 +72,45 @@ function loadSavedList() {
         });
     });
 }
-loadSavedList();
 
-const loadSelect = document.getElementById("load-select");
-loadSelect.addEventListener("change", (e) => {
-  const file = e.target.value;
-  if (!file) return;
+document.getElementById("load-button").addEventListener("click", async () => {
+  const select = document.getElementById("load-select");
+  const selected = Array.from(select.selectedOptions)
+    .map((opt) => opt.value)
+    .filter((val) => val);
 
-  fetch(`/saved/${file}`)
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.error) return alert("Could not load file: " + data.error);
-      currentQuery = file.split("-").slice(1).join(" ").replace(".json", "");
-      currentResults = data;
+  if (selected.length === 0) {
+    alert("Please select at least one saved search.");
+    return;
+  }
 
-      clearVisuals();
-      visualizePosts(data);
+  try {
+    const results = await Promise.all(
+      selected.map(async (filename) => {
+        const response = await fetch(`/saved/${encodeURIComponent(filename)}`);
+        if (!response.ok) {
+          throw new Error(`Failed to load ${filename}: ${response.status}`);
+        }
+        return response.json();
+      })
+    );
+
+    const combined = results.flat().sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      return timeA - timeB;
     });
+
+    console.log("Chronologically Sorted Results:", combined);
+    clearVisuals();
+    visualizePosts(combined);
+  } catch (err) {
+    console.error("Error loading files:", err);
+    alert(`Error: ${err.message}`);
+  }
 });
+
+loadSavedList();
 
 function clearVisuals() {
   d3.select("#card-grid").html("");
@@ -917,8 +940,8 @@ function visualizePosts(data) {
       .append("img")
       .attr("src", post.author_avatar)
       .attr("alt", "Avatar")
-      .style("width", "66px")
-      .style("height", "66px")
+      .style("width", "43px")
+      .style("height", "43px")
       .style("border-radius", "50%")
       .style("object-fit", "cover");
 

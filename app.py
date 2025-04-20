@@ -82,7 +82,7 @@ def save_result():
         if not results:
             return jsonify({"success": False, "error": "No results to save."}), 400
 
-        timestamp = datetime.now().strftime("%Y-%m-%d-%H%M")
+        timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
         filename = f"{timestamp}-{query.replace(' ', '_')}.json"
         filepath = os.path.join(SAVE_DIR, filename)
 
@@ -105,6 +105,22 @@ def load_saved(filename):
         with open(filepath) as f:
             return jsonify(json.load(f))
     return jsonify({"error": "File not found"}), 404
+
+@app.route("/saved_batch", methods=["POST"])
+def load_saved_batch():
+    data = request.get_json()
+    filenames = data.get("filenames", [])
+    combined = []
+
+    for filename in filenames:
+        filepath = os.path.join(SAVE_DIR, filename)
+        if os.path.exists(filepath):
+            with open(filepath) as f:
+                combined.append(json.load(f))
+        else:
+            return jsonify({"error": f"File {filename} not found"}), 404
+
+    return jsonify(combined)
 
 @app.route("/get_thread", methods=["POST"])
 def get_thread():
