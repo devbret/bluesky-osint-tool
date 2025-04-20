@@ -909,7 +909,7 @@ function visualizePosts(data) {
         <div class="top-of-card" style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem;">
           <img src="${
             post.author_avatar
-          }" alt="Avatar" style="width: 43px; height: 43px; border-radius: 50%; object-fit: cover;">
+          }" alt="Avatar" style="width: 66px; height: 66px; border-radius: 50%; object-fit: cover;">
           <div style="display: flex; flex-direction: column;">
             <p><strong class="meta">Display Name:</strong> <span class="meta-text">${
               post.author_display_name || "N/A"
@@ -917,9 +917,68 @@ function visualizePosts(data) {
             <p><strong class="meta">Handle:</strong> <span class="meta-text">${
               post.author
             }</span></p>
+            ${
+              post.author_did
+                ? `<button class="follow-button" style="margin-top: 0.13rem; width: fit-content;">Follow</button>`
+                : ""
+            }
           </div>
         </div>
-        <strong>Post Content:</strong>`);
+        <strong>Post Content:</strong>
+      `);
+
+    if (post.author_did) {
+      const followButton = textBlock.select(".follow-button");
+      let followed = false;
+      let followUri = null;
+
+      followButton.on("click", () => {
+        if (!followed) {
+          fetch("/follow", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ did: post.author_did }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                followUri = data.data?.uri || null;
+                followed = true;
+                followButton.text("Unfollow");
+              } else {
+                alert(`Failed to follow: ${data.error}`);
+              }
+            })
+            .catch(() => {
+              alert("Follow request failed.");
+            });
+        } else {
+          if (!followUri) {
+            alert("Missing follow URI. Cannot unfollow.");
+            return;
+          }
+
+          fetch("/unfollow", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uri: followUri }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                followed = false;
+                followUri = null;
+                followButton.text("Follow");
+              } else {
+                alert(`Failed to unfollow: ${data.error}`);
+              }
+            })
+            .catch(() => {
+              alert("Unfollow request failed.");
+            });
+        }
+      });
+    }
 
     textBlock
       .append("div")

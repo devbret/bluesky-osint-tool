@@ -58,6 +58,7 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
             author_handle = author.get('handle', '')
             author_display_name = author.get('displayName', '')
             author_avatar = author.get('avatar', '')
+            author_did = author.get('did', '')
             uri = post.get('uri', '')
             reply_parent = post['record'].get('reply', {}).get('parent', {}).get('uri', None)
 
@@ -118,7 +119,8 @@ def run_analysis(username, app_password, query, start_date, end_date, limit=100)
                 'langs': langs,
                 'author_display_name': author_display_name,
                 'author_avatar': author_avatar,
-                'uri': uri
+                'uri': uri,
+                'author_did': author_did
             })
 
         except Exception as e:
@@ -142,3 +144,23 @@ def get_post_thread(username, app_password, post_uri):
     )
     response.raise_for_status()
     return response.json()
+
+def follow_user(username, app_password, did_to_follow):
+    client = Client()
+    client.login(username, app_password)
+
+    try:
+        result = client.follow(did_to_follow)
+        return {"uri": result.uri}
+    except Exception as e:
+        raise RuntimeError(f"Failed to follow user: {e}")
+    
+def unfollow_user(username, app_password, follow_uri):
+    client = Client()
+    client.login(username, app_password)
+
+    try:
+        client.delete_follow(follow_uri)
+        return {"success": True}
+    except Exception as e:
+        raise RuntimeError(f"Failed to unfollow user: {e}")

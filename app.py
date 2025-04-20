@@ -2,9 +2,11 @@ from flask import Flask, request, render_template, jsonify
 from datetime import datetime, timezone, timedelta
 from bluesky_analyzer import run_analysis
 from bluesky_analyzer import get_post_thread
+from bluesky_analyzer import unfollow_user
+from bluesky_analyzer import follow_user
+from dotenv import load_dotenv
 import os
 import json
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -109,6 +111,32 @@ def get_thread():
 
         thread_data = get_post_thread(USERNAME, APP_PASSWORD, post_uri)
         return jsonify({"success": True, "thread": thread_data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/follow", methods=["POST"])
+def follow():
+    try:
+        data = request.get_json()
+        did_to_follow = data.get("did")
+        if not did_to_follow:
+            return jsonify({"success": False, "error": "DID is required to follow."}), 400
+
+        result = follow_user(USERNAME, APP_PASSWORD, did_to_follow)
+        return jsonify({"success": True, "message": "Followed successfully.", "data": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    
+@app.route("/unfollow", methods=["POST"])
+def unfollow():
+    try:
+        data = request.get_json()
+        follow_uri = data.get("uri")
+        if not follow_uri:
+            return jsonify({"success": False, "error": "URI is required to unfollow."}), 400
+
+        result = unfollow_user(USERNAME, APP_PASSWORD, follow_uri)
+        return jsonify({"success": True, "message": "Unfollowed successfully.", "data": result})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
