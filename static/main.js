@@ -943,8 +943,8 @@ function visualizePosts(data) {
       .append("img")
       .attr("src", post.author_avatar)
       .attr("alt", "Avatar")
-      .style("width", "43px")
-      .style("height", "43px")
+      .style("width", "66px")
+      .style("height", "66px")
       .style("border-radius", "50%")
       .style("object-fit", "cover");
 
@@ -1228,25 +1228,28 @@ function visualizePosts(data) {
       .attr("class", "text-label")
       .html(`<strong>Meta:</strong>`);
 
+    const date = new Date(post.created_at);
+    const localString = date.toLocaleString();
+
     metaBlock.append("div").attr("class", "meta").html(`
-      <strong class="meta">Time:</strong> <span class="meta-text">${
-        post.created_at
-      }</span><br>
+      <strong class="meta">Time:</strong> <span class="meta-text">${localString}</span><br>
       <strong class="meta">Languages:</strong> <span class="meta-text">${
         post.langs?.join(", ") || "N/A"
       }</span><br>
-      <strong class="meta">Replies:</strong> <span class="meta-text">${
-        post.replyCount
-      }</span><br>
-      <strong class="meta">Reposts:</strong> <span class="meta-text">${
-        post.repostCount
-      }</span><br>
-      <strong class="meta">Likes:</strong> <span class="meta-text">${
-        post.likeCount
-      }</span><br>
-      <strong class="meta">Quotes:</strong> <span class="meta-text">${
-        post.quoteCount
-      }</span><br>
+      <span>
+        <strong class="meta">Replies:</strong>  <span class="meta-text">${
+          post.replyCount
+        }</span>, 
+        <strong class="meta">Reposts:</strong>  <span class="meta-text">${
+          post.repostCount
+        }</span>, 
+        <strong class="meta">Likes:</strong>  <span class="meta-text">${
+          post.likeCount
+        }</span>, 
+        <strong class="meta">Quotes:</strong>  <span class="meta-text">${
+          post.quoteCount
+        }</span>
+      </span>
     `);
 
     const analysisBlock = card.append("div").attr("class", "analysis");
@@ -1287,60 +1290,64 @@ function visualizePosts(data) {
   const repliesInput = document.getElementById("replies-filter");
   const repostsInput = document.getElementById("reposts-filter");
   const quotesInput = document.getElementById("quotes-filter");
+  const contentInput = document.getElementById("content-filter");
 
   function applyFilters() {
     const minLikes = parseInt(likesInput.value, 10) || 0;
     const minReplies = parseInt(repliesInput.value, 10) || 0;
     const minReposts = parseInt(repostsInput.value, 10) || 0;
     const minQuotes = parseInt(quotesInput.value, 10) || 0;
+    const contentQuery = contentInput.value.toLowerCase();
 
     document.querySelectorAll("#card-grid .card").forEach((cardEl) => {
       const likes = parseInt(cardEl.getAttribute("data-likes"), 10) || 0;
       const replies = parseInt(cardEl.getAttribute("data-replies"), 10) || 0;
       const reposts = parseInt(cardEl.getAttribute("data-reposts"), 10) || 0;
       const quotes = parseInt(cardEl.getAttribute("data-quotes"), 10) || 0;
+      const content =
+        cardEl.querySelector(".content-text")?.innerText.toLowerCase() || "";
 
-      cardEl.style.display =
+      const passesFilters =
         likes >= minLikes &&
         replies >= minReplies &&
         reposts >= minReposts &&
-        quotes >= minQuotes
-          ? ""
-          : "none";
+        quotes >= minQuotes &&
+        content.includes(contentQuery);
+
+      cardEl.style.display = passesFilters ? "" : "none";
     });
   }
 
-  [likesInput, repliesInput, repostsInput, quotesInput].forEach((el) =>
-    el.addEventListener("input", applyFilters)
+  [likesInput, repliesInput, repostsInput, quotesInput, contentInput].forEach(
+    (el) => el.addEventListener("input", applyFilters)
   );
-}
 
-function renderThreadNode(node, container) {
-  const threadChain = [];
+  function renderThreadNode(node, container) {
+    const threadChain = [];
 
-  let current = node;
-  while (current && current.post) {
-    threadChain.unshift(current);
-    current = current.parent;
-  }
+    let current = node;
+    while (current && current.post) {
+      threadChain.unshift(current);
+      current = current.parent;
+    }
 
-  let lastRendered = container;
-  threadChain.forEach((nodePart) => {
-    const postData = nodePart.post;
-    const author =
-      postData.author.displayName || postData.author.handle || "Unknown";
-    const text = postData.record.text || "";
-    const createdAt = postData.record.createdAt || "";
-    const postUrl = `https://bsky.app/profile/${
-      postData.author.handle
-    }/post/${postData.uri.split("/").pop()}`;
+    let lastRendered = container;
+    threadChain.forEach((nodePart) => {
+      const postData = nodePart.post;
+      const author =
+        postData.author.displayName || postData.author.handle || "Unknown";
+      const text = postData.record.text || "";
+      const createdAt = postData.record.createdAt || "";
+      const postUrl = `https://bsky.app/profile/${
+        postData.author.handle
+      }/post/${postData.uri.split("/").pop()}`;
 
-    const postDiv = lastRendered
-      .append("div")
-      .attr("class", "thread-post")
-      .style("margin-bottom", "0.75rem");
+      const postDiv = lastRendered
+        .append("div")
+        .attr("class", "thread-post")
+        .style("margin-bottom", "0.75rem");
 
-    postDiv.html(`
+      postDiv.html(`
       <div style="margin-bottom: 0.25rem;">
         <span style="font-size: 13px;"><strong>${author}</strong></span> 
         <a href="${postUrl}" target="_blank" style="font-size: 13px;">(view)</a><br>
@@ -1353,33 +1360,33 @@ function renderThreadNode(node, container) {
       </div>
     `);
 
-    lastRendered = postDiv;
-  });
+      lastRendered = postDiv;
+    });
 
-  function renderReplies(replies, parentEl) {
-    if (!Array.isArray(replies) || replies.length === 0) return;
+    function renderReplies(replies, parentEl) {
+      if (!Array.isArray(replies) || replies.length === 0) return;
 
-    replies.forEach((replyNode) => {
-      if (!replyNode.post) return;
+      replies.forEach((replyNode) => {
+        if (!replyNode.post) return;
 
-      const postData = replyNode.post;
-      const author =
-        postData.author.displayName || postData.author.handle || "Unknown";
-      const text = postData.record.text || "";
-      const createdAt = postData.record.createdAt || "";
-      const postUrl = `https://bsky.app/profile/${
-        postData.author.handle
-      }/post/${postData.uri.split("/").pop()}`;
+        const postData = replyNode.post;
+        const author =
+          postData.author.displayName || postData.author.handle || "Unknown";
+        const text = postData.record.text || "";
+        const createdAt = postData.record.createdAt || "";
+        const postUrl = `https://bsky.app/profile/${
+          postData.author.handle
+        }/post/${postData.uri.split("/").pop()}`;
 
-      const replyDiv = parentEl
-        .append("div")
-        .attr("class", "thread-reply")
-        .style("margin-top", "1rem")
-        .style("border-left", "3px solid #ddd")
-        .style("margin-left", "1rem")
-        .style("padding-left", "1rem");
+        const replyDiv = parentEl
+          .append("div")
+          .attr("class", "thread-reply")
+          .style("margin-top", "1rem")
+          .style("border-left", "3px solid #ddd")
+          .style("margin-left", "1rem")
+          .style("padding-left", "1rem");
 
-      replyDiv.html(`
+        replyDiv.html(`
         <div style="margin-bottom: 0.25rem;">
           <span style="font-size: 13px;"><strong>${author}</strong></span> 
           <a href="${postUrl}" target="_blank" style="font-size: 13px;">(view)</a><br>
@@ -1392,13 +1399,14 @@ function renderThreadNode(node, container) {
         </div>
       `);
 
-      if (replyNode.replies?.length) {
-        renderReplies(replyNode.replies, replyDiv);
-      }
-    });
-  }
+        if (replyNode.replies?.length) {
+          renderReplies(replyNode.replies, replyDiv);
+        }
+      });
+    }
 
-  if (node.replies?.length) {
-    renderReplies(node.replies, lastRendered);
+    if (node.replies?.length) {
+      renderReplies(node.replies, lastRendered);
+    }
   }
 }

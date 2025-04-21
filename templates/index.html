@@ -24,33 +24,29 @@
 
       <div class="save-load-controls search-controls">
         <div class="filter-controls">
-          <input
-            type="number"
-            id="likes-filter"
-            placeholder="Min Likes"
-            min="0"
-          />
+          <input type="number" id="likes-filter" placeholder="Likes" min="0" />
           <input
             type="number"
             id="replies-filter"
-            placeholder="Min Replies"
+            placeholder="Replies"
             min="0"
           />
           <input
             type="number"
             id="reposts-filter"
-            placeholder="Min Reposts"
+            placeholder="Reposts"
             min="0"
           />
           <input
             type="number"
             id="quotes-filter"
-            placeholder="Min Quotes"
+            placeholder="Quotes"
             min="0"
           />
+          <input type="text" id="content-filter" placeholder="Search" />
         </div>
         <div id="save-load-controls">
-          <button id="save-button">Save Current Search</button>
+          <button id="save-button">Save Search</button>
           <select id="load-select" multiple></select>
           <button id="load-button">Load</button>
         </div>

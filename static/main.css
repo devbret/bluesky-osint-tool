@@ -136,10 +136,16 @@ ul li {
 }
 
 .filter-controls input[type="number"] {
-  width: 123px;
+  width: 93px;
   padding: 0.25rem 0.5rem;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+.filter-controls input[type="text"] {
+  width: 123px;
+  border: 1px solid #ccc;
+  padding: 3px 5px;
 }
 
 svg {
