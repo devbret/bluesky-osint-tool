@@ -1187,12 +1187,27 @@ function visualizePosts(data) {
 
     if (post.uri && post.uri.startsWith("at://")) {
       const isInThread = post.reply_to || post.replyCount > 0;
+
+      const toggleButtonGroup = card
+        .append("div")
+        .attr("class", "thread-reply-button-group");
+
+      const sharedToggleContainer = card
+        .append("div")
+        .attr("class", "shared-toggle-container")
+        .style("display", "none");
+
       if (isInThread) {
-        const threadButton = card
+        toggleButtonGroup
           .append("button")
           .text("Display Thread")
-          .attr("class", "view-thread-button")
+          .attr("class", "toggle-thread-button shared-toggle-button")
           .on("click", () => {
+            sharedToggleContainer
+              .attr("class", "shared-toggle-container")
+              .style("display", "block")
+              .html("Loading...");
+
             fetch("/get_thread", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -1202,23 +1217,70 @@ function visualizePosts(data) {
               .then((data) => {
                 if (data.success && data.thread?.thread) {
                   const root = data.thread.thread;
-                  threadContainer.html("");
-                  renderThreadNode(root, threadContainer);
+                  sharedToggleContainer.html("");
+                  renderThreadNode(root, sharedToggleContainer);
                 } else {
-                  alert("Error loading thread: " + data.error);
+                  sharedToggleContainer.html("Error loading thread.");
                 }
               })
-              .catch((err) => {
-                alert("Failed to load thread.");
+              .catch(() => {
+                sharedToggleContainer.html("Error loading thread.");
               });
           });
+      }
 
-        const threadContainer = card
-          .append("div")
-          .attr("class", "thread-view")
-          .style("margin-top", "0")
-          .style("border-left", "3px solid #ccc")
-          .style("padding-left", "1rem");
+      if (post.cid) {
+        toggleButtonGroup
+          .append("button")
+          .text("Reply to Post")
+          .attr("class", "toggle-reply-button shared-toggle-button")
+          .on("click", () => {
+            sharedToggleContainer
+              .attr("class", "shared-toggle-container no-border")
+              .style("display", "block")
+              .html("");
+
+            const replyTextarea = sharedToggleContainer
+              .append("textarea")
+              .attr("placeholder", "Write your reply...")
+              .style("width", "100%")
+              .style("min-height", "123px")
+              .style("margin-bottom", "0.5rem")
+              .style("min-width", "366px")
+              .style("box-sizing", "border-box")
+              .style("max-width", "366px");
+
+            sharedToggleContainer
+              .append("button")
+              .text("Submit Reply")
+              .attr("class", "submit-reply-button shared-toggle-button")
+              .on("click", () => {
+                const replyText = replyTextarea.node().value.trim();
+                if (!replyText) return;
+
+                fetch("/reply", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    text: replyText,
+                    parent_uri: post.uri,
+                  }),
+                })
+                  .then((res) => res.json())
+                  .then((data) => {
+                    if (data.success) {
+                      alert("Reply posted!");
+                      replyTextarea.node().value = "";
+                      sharedToggleContainer.style("display", "none");
+                    } else {
+                      alert("Reply failed: " + data.error);
+                    }
+                  })
+                  .catch(() => {
+                    alert("Reply submission failed.");
+                  });
+              });
+          });
       }
     }
 

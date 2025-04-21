@@ -8,6 +8,7 @@ from bluesky_analyzer import like_post
 from bluesky_analyzer import unlike_post
 from bluesky_analyzer import repost_post
 from bluesky_analyzer import unrepost_post
+from bluesky_analyzer import reply_to_post
 from dotenv import load_dotenv
 import os
 import json
@@ -215,6 +216,21 @@ def unrepost():
 
         result = unrepost_post(USERNAME, APP_PASSWORD, repost_uri)
         return jsonify({"success": True, "message": "Post unreposted.", "data": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/reply", methods=["POST"])
+def reply():
+    try:
+        data = request.get_json()
+        parent_uri = data.get("parent_uri")
+        text = data.get("text", "").strip()
+
+        if not parent_uri or not text:
+            return jsonify({"success": False, "error": "Missing text or URI"}), 400
+
+        result = reply_to_post(USERNAME, APP_PASSWORD, parent_uri, text)
+        return jsonify({"success": True, "result": result})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

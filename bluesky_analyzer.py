@@ -2,8 +2,9 @@ import json
 from atproto import Client
 import requests
 from textblob import TextBlob
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import quote
+from urllib.parse import urlparse
 import re
 
 def linkify_text(text):
@@ -206,3 +207,91 @@ def unrepost_post(username, app_password, repost_uri):
         return {"success": True}
     except Exception as e:
         raise RuntimeError(f"Failed to unrepost: {e}")
+
+
+def parse_uri(uri: str):
+    parsed = urlparse(uri)
+
+    repo = parsed.netloc 
+    path_parts = parsed.path.strip("/").split("/")
+
+    if len(path_parts) != 2:
+        raise ValueError(f"Expected 2 parts in URI path, got {len(path_parts)}: {path_parts}")
+
+    collection, rkey = path_parts
+
+    return {
+        "repo": repo,
+        "collection": collection,
+        "rkey": rkey,
+    }
+
+def get_reply_refs(client, parent_uri: str):
+    uri_parts = parse_uri(parent_uri)
+
+    resp = requests.get(
+        "https://bsky.social/xrpc/com.atproto.repo.getRecord",
+        params=uri_parts,
+    )
+    resp.raise_for_status()
+    parent = resp.json()
+
+    parent_reply = parent["value"].get("reply")
+
+    if parent_reply is not None:
+        root_uri = parent_reply["root"]["uri"]
+        root_parts = root_uri.split("/")[2:5]
+
+        if len(root_parts) != 3:
+            raise ValueError(f"Invalid root_uri format: {root_uri}")
+
+        root_repo, root_collection, root_rkey = root_parts
+
+        resp = requests.get(
+            "https://bsky.social/xrpc/com.atproto.repo.getRecord",
+            params={
+                "repo": root_repo,
+                "collection": root_collection,
+                "rkey": root_rkey,
+            },
+        )
+        resp.raise_for_status()
+        root = resp.json()
+    else:
+        root = parent
+
+    return {
+        "root": {
+            "uri": root["uri"],
+            "cid": root["cid"],
+        },
+        "parent": {
+            "uri": parent["uri"],
+            "cid": parent["cid"],
+        },
+    }
+
+def reply_to_post(username, app_password, parent_uri, reply_text):
+    client = Client()
+    client.login(username, app_password)
+
+    reply_refs = get_reply_refs(client, parent_uri)
+
+    post = {
+        "$type": "app.bsky.feed.post",
+        "text": reply_text,
+        "createdAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "reply": reply_refs
+    }
+
+    resp = requests.post(
+        "https://bsky.social/xrpc/com.atproto.repo.createRecord",
+        headers={"Authorization": f"Bearer {client._session.access_jwt}"},
+        json={
+            "repo": client.me["did"],
+            "collection": "app.bsky.feed.post",
+            "record": post,
+        },
+    )
+    resp.raise_for_status()
+    return resp.json()
