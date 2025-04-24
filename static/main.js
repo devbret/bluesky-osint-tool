@@ -120,6 +120,7 @@ function clearVisuals() {
   d3.selectAll("#top-authors-chart, #top-domains-chart").html("");
   d3.select("#bar-chart").html("");
   d3.select("#daily-posts-chart").html("");
+  d3.select("#top-languages-chart").html("");
   d3.select("#word-cloud").html("");
   d3.select("#bigram-cloud").html("");
   d3.select("#trigram-cloud").html("");
@@ -132,6 +133,7 @@ function visualizePosts(data) {
   currentResults = data;
 
   const authorCounts = {};
+
   data.forEach((d) => {
     const author = d.author;
     authorCounts[author] = (authorCounts[author] || 0) + 1;
@@ -143,6 +145,7 @@ function visualizePosts(data) {
     .slice(0, 23);
 
   const domainCounts = {};
+
   data.forEach((d) => {
     if (d.links && Array.isArray(d.links)) {
       d.links.forEach((link) => {
@@ -153,10 +156,23 @@ function visualizePosts(data) {
       });
     }
   });
+
   const topDomains = Object.entries(domainCounts)
     .map(([domain, count]) => ({ domain, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 23);
+
+  const langCounts = {};
+
+  data.forEach((d) => {
+    (d.langs || []).forEach((lang) => {
+      langCounts[lang] = (langCounts[lang] || 0) + 1;
+    });
+  });
+
+  const topLangs = Object.entries(langCounts)
+    .map(([lang, count]) => ({ lang, count }))
+    .sort((a, b) => b.count - a.count);
 
   renderHorizontalBarChart({
     containerId: "#top-authors-chart",
@@ -174,19 +190,35 @@ function visualizePosts(data) {
     title: "Top Domains",
   });
 
+  renderHorizontalBarChart({
+    containerId: "#top-languages-chart",
+    data: topLangs,
+    categoryKey: "lang",
+    valueKey: "count",
+    title: "Top Languages",
+    customMargin: { top: 20, right: 100, bottom: 30, left: 43 },
+  });
+
   function renderHorizontalBarChart({
     containerId,
     data,
     categoryKey,
     valueKey,
     title,
+    customMargin = null,
   }) {
     const container = d3.select(containerId);
+    container.html("");
     container.append("h3").text(title);
 
-    const margin = { top: 20, right: 100, bottom: 30, left: 150 },
-      width = window.innerWidth * 0.45 - margin.left - margin.right,
-      height = 500 - margin.top - margin.bottom;
+    const margin = customMargin || {
+      top: 20,
+      right: 100,
+      bottom: 30,
+      left: 150,
+    };
+    (width = window.innerWidth * 0.45 - margin.left - margin.right),
+      (height = 500 - margin.top - margin.bottom);
 
     const svg = container
       .append("svg")
@@ -946,6 +978,7 @@ function visualizePosts(data) {
       .style("width", "66px")
       .style("height", "66px")
       .style("border-radius", "50%")
+      .style("border", "1px solid black")
       .style("object-fit", "cover");
 
     const authorInfo = topRow
